@@ -27,10 +27,6 @@ class EthNetwork(WrapperNetwork):
         is_testnet = NETWORKS[type]['scanner']['is_testnet']
         self.etherscan = EtherScanAPI(etherscan_api_key, is_testnet) if etherscan_api_key else None
 
-        self.erc20_contracts_dict = {t_name: self.web3.eth.contract(
-            self.web3.toChecksumAddress(t_address),
-            abi=erc20_abi
-        ) for t_name, t_address in tokens.items()}
 
     def get_last_block(self):
         return self.web3.eth.blockNumber
@@ -84,9 +80,13 @@ class EthNetwork(WrapperNetwork):
             bool(tx_res['status']),
         )
 
-    def get_processed_tx_receipt(self, tx_hash, token_name):
+    def get_processed_tx_receipt(self, tx_hash, token_symbol):
+        erc20_contracts_dict = {token_symbol: self.web3.eth.contract(
+            self.web3.toChecksumAddress(t_address),
+            abi=erc20_abi
+        )}
         tx_res = self.web3.eth.getTransactionReceipt(tx_hash)
-        processed = self.erc20_contracts_dict[token_name].events.TransferToOtherBlockchain().processReceipt(tx_res)
+        processed = self.erc20_contracts_dict[token_symbol].events.TransferToOtherBlockchain().processReceipt(tx_res)
         return processed
 
 

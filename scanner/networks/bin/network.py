@@ -40,11 +40,10 @@ class BinNetwork(WrapperNetwork):
     def get_last_block(self):
         pass
 
-    def get_block(self, s_time) -> WrapperBlock:
+    def get_block(self, token, s_time) -> WrapperBlock:
         print('BINANCE_MAINNET: scanning', flush=True)
-        client_transactions = client.get_transactions(address=NETWORKS['Binance-Chain']['token']['address'],
-                                                      tx_asset=NETWORKS['Binance-Chain']['token']['symbol'],
-                                                      start_time=s_time, limit=1000)
+        client_transactions = client.get_transactions(address=token.address,
+                              tx_asset=token.symbol, start_time=s_time, limit=1000)
         tx_count = client_transactions['total']
         print(tx_count, flush=True)
         client_transactions = client_transactions['tx']
@@ -53,8 +52,8 @@ class BinNetwork(WrapperNetwork):
         while tx_count > len(client_transactions):
             offset += 1000
             client_transactions_append = client.get_transactions(
-                address=NETWORKS['Binance-Chain']['token']['address'],
-                tx_asset=NETWORKS['Binance-Chain']['token']['symbol'], offset=offset, start_time=s_time, limit=1000)
+                address=token.address,
+                              tx_asset=token.symbol, offset=offset, start_time=s_time, limit=1000)
             tx_count = client_transactions_append['total']
             client_transactions += client_transactions_append['tx']
             time.sleep(1)

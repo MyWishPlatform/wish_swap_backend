@@ -1,5 +1,5 @@
 from scanner.eventscanner.queue.pika_handler import send_to_backend
-#from mywish_models.models import ExchangeRequests, session
+from mywish_models.models import Dex, Token, session
 from scanner.scanner.events.block_event import BlockEvent
 from wish_swap.settings_local import BLOCKCHAINS_BY_NUMBER, NETWORKS, ERC20_TOKENS
 
@@ -9,27 +9,34 @@ class EthPaymentMonitor:
     network_types = ['Ethereum']
     event_type = 'payment'
     queue = 'Ethereum'
-    tokens = ERC20_TOKENS
+    #tokens = ERC20_TOKENS
+    tokens = session.query(Token).filter(cls.network(Token).in_(network_types)).all()
+
+    @classmethod
+    def network(cls, model):
+        s = 'network'
+        return getattr(model, s)
+
 
     @classmethod
     def on_new_block_event(cls, block_event: BlockEvent):
         if block_event.network.type not in cls.network_types:
             return
         addresses = block_event.transactions_by_address.keys()
-        for token_name, token_address in cls.tokens.items():
-            token_address = token_address.lower()
-            if token_address in addresses:
+        for token in cls.tokens:
+            swap_address = token.swap_address
+            if swap_address in addresses:
                 transactions = block_event.transactions_by_address[token_address]
-                cls.handle(token_address, token_name, transactions, block_event.network)
+                cls.handle(token, transactions, block_event.network)
         
         
     @classmethod
-    def handle(cls, token_address: str, token_name, transactions, network):
+    def handle(cls, token, transactions, network):
         for tx in transactions:
-            if token_address.lower() != tx.outputs[0].address.lower():
+            if token.swap_address.lower() != tx.outputs[0].address.lower():
                 continue
 
-            processed_receipt = network.get_processed_tx_receipt(tx.tx_hash, token_name)
+            processed_receipt = network.get_processed_tx_receipt(tx.tx_hash, token.symbol)
             if not processed_receipt:
                 print('{}: WARNING! Can`t handle tx {}, probably we dont support this event'.format(
                     cls.network_types[0], tx.tx_hash), flush=True)
@@ -37,7 +44,7 @@ class EthPaymentMonitor:
             print(processed_receipt)
             transfer_from = processed_receipt[0].args.user
             amount = processed_receipt[0].args.amount
-            network = BLOCKCHAINS_BY_NUMBER[processed_receipt[0].args.blockchain]
+            network = processed_receipt[0].args.blockchain
             swap_to = processed_receipt[0].args.newAddress
 
         
@@ -48,12 +55,13 @@ class EthPaymentMonitor:
                 success='ERROR'
             print(tx.outputs[0].raw_output_script)
             message = {
+                'tokenId', token.id,
                 'address': transfer_from,
                 'transactionHash': tx.tx_hash,
                 'amount': amount,
-                'memo': swap_to,
+                'toAddress': swap_to,
                 'status': success,
-                'network': network
+                'networkNumber': network
             }
             
             send_to_backend(cls.event_type, cls.queue, message)
