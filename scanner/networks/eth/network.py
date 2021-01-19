@@ -80,13 +80,13 @@ class EthNetwork(WrapperNetwork):
             bool(tx_res['status']),
         )
 
-    def get_processed_tx_receipt(self, tx_hash, token_symbol):
+    def get_processed_tx_receipt(self, tx_hash, token_symbol, token_address):
         erc20_contracts_dict = {token_symbol: self.web3.eth.contract(
-            self.web3.toChecksumAddress(t_address),
+            self.web3.toChecksumAddress(token_address),
             abi=erc20_abi
         )}
         tx_res = self.web3.eth.getTransactionReceipt(tx_hash)
-        processed = self.erc20_contracts_dict[token_symbol].events.TransferToOtherBlockchain().processReceipt(tx_res)
+        processed = erc20_contracts_dict[token_symbol].events.TransferToOtherBlockchain().processReceipt(tx_res)
         return processed
 
 
