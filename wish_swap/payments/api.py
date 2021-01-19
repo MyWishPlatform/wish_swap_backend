@@ -1,82 +1,53 @@
 from wish_swap.payments.models import Payment
+from wish_swap.settings import NETWORKS_BY_NUMBER
+from wish_swap.tokens.models import Token
 from wish_swap.transfers.models import Transfer
-from wish_swap.transfers.api import eth_like_token_mint, binance_transfer
-from wish_swap.settings import NETWORKS, TOKEN_DECIMALS
-from wish_swap.rates.api import calculate_wish_fee
-from wish_swap.rates.models import WishCommission
-
-
-def create_transfer(payment, address, currency, amount):
-    transfer = Transfer(
-        payment=payment,
-        address=address,
-        currency=currency,
-        amount=amount,
-    )
-    transfer.save()
-    return transfer
 
 
 def parse_payment(message):
+    network_number = message['networkNumber']
+    try:
+        to_network = NETWORKS_BY_NUMBER[network_number]
+    except KeyError:
+        print(f'parsing payment: Network associated with number {network_number} doesn`t exist!', flush=True)
+
     tx_hash = message['transactionHash']
-    from_network = message['fromNetwork']
-    to_network = message['network']
     from_address = message['address']
-    to_address = message['memo']
+    to_address = message['toAddress']
     amount = message['amount']
-    from_currency = NETWORKS[from_network]['token']['symbol']
-    to_currency = NETWORKS[to_network]['token']['symbol']
-    if not Payment.objects.filter(tx_hash=tx_hash, currency=from_currency).count() > 0:
-        payment = Payment(address=from_address, tx_hash=tx_hash, currency=from_currency, amount=amount)
+    from_token = Token.objects.get(message['tokenId'])
+
+    if not Payment.objects.filter(tx_hash=tx_hash, token=from_token).count() > 0:
+        payment = Payment(address=from_address, tx_hash=tx_hash, token=from_token, amount=amount)
         payment.save()
         print(f'parsing payment: Payment {payment.tx_hash} from {payment.address} '
-              f'for {payment.amount / TOKEN_DECIMALS} {payment.currency} successfully saved', flush=True)
+              f'for {amount / from_token.decimals} {from_token.symbol} successfully saved', flush=True)
 
-        wish_fee = calculate_wish_fee(to_network, to_address, amount)
-        print(f'parsing payment: Transfer commission is {wish_fee / TOKEN_DECIMALS} WISH', flush=True)
-        transfer = create_transfer(payment, to_address, to_currency, amount - wish_fee)
+        try:
+            to_token = from_token.dex[to_network]
+        except Token.DoesNotExist:
+            print(f'parsing payment: Matching token doesn`t exist in {to_network} network!', flush=True)
+            return
 
-        wish_commission_obj = WishCommission.objects.first() or WishCommission()
-        wish_commission_obj.amount += wish_fee
-        wish_commission_obj.save()
-        print('parsing payment: Commission saved', flush=True)
-        print(f'parsing payment: Total commission amount is '
-              f'{wish_commission_obj.amount / TOKEN_DECIMALS} WISH', flush=True)
+        fee_amount = to_token.fee * (10 ** to_token.decimals)
 
-        if to_network in ('Ethereum', 'Binance-Smart-Chain'):
-            try:
-                transfer.tx_hash = eth_like_token_mint(
-                    network=NETWORKS[to_network],
-                    address=transfer.address,
-                    amount=transfer.amount,
-                )
-                transfer.status = 'TRANSFERRED'
-                print(f'parsing payment: Successful transfer {transfer.tx_hash} to {transfer.address} '
-                      f'for {transfer.amount / TOKEN_DECIMALS} {transfer.currency}', flush=True)
-                transfer.save()
-                print('parsing payment: Transfer saved', flush=True)
-            except Exception as e:
-                transfer.tx_error = repr(e)
-                transfer.status = 'FAIL'
-                print(f'parsing payment: Transfer failed with exception {transfer.tx_error}', flush=True)
-                transfer.save()
-                print('parsing payment: Transfer saved', flush=True)
-        elif to_network == 'Binance-Chain':
-            is_ok, transfer_data = binance_transfer(NETWORKS[to_network], to_address, amount)
-            if is_ok:
-                transfer.tx_hash = transfer_data
-                transfer.status = 'TRANSFERRED'
-                print(f'parsing payment: Successful transfer {transfer.tx_hash} to {transfer.address} '
-                      f'for {transfer.amount / TOKEN_DECIMALS} {transfer.currency}', flush=True)
-                transfer.save()
-                print('parsing payment: Transfer saved', flush=True)
-            else:
-                transfer.tx_error = transfer_data
-                transfer.status = 'FAIL'
-                print(f'parsing payment: Transfer failed with error {transfer.tx_error}', flush=True)
-                transfer.save()
-                print('parsing payment: Transfer saved', flush=True)
+        transfer = Transfer(
+            payment=payment,
+            token=to_token,
+            address=to_address,
+            amount=amount - fee_amount,
+            fee_address=to_token.fee_address,
+            fee_amount=amount-fee_amount,
+        )
+        transfer.save()
+        transfer.execute()
+        transfer.save()
+
+        if transfer.status == 'FAIL':
+            print(f'parsing payment: Transfer failed with error {transfer.tx_error}', flush=True)
         else:
-            print('parsing payment: Unknown blockchain', flush=True)
+            print(f'parsing payment: Successful transfer {transfer.tx_hash} to {transfer.address} '
+                  f'for {transfer.amount / transfer.token.decimals} {transfer.token.symbol}', flush=True)
+
     else:
         print(f'parsing payment: Tx {tx_hash} already registered', flush=True)

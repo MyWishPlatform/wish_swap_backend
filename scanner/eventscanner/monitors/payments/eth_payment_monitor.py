@@ -11,7 +11,7 @@ class EthPaymentMonitor:
     queue = 'Ethereum'
     #tokens = ERC20_TOKENS
 
-
+    
     @classmethod
     def network(cls, model):
         s = 'network'

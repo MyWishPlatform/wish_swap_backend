@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'wish_swap.payments',
     'wish_swap.transfers',
     'wish_swap.rates',
+    'wish_swap.tokens',
 ]
 
 MIDDLEWARE = [

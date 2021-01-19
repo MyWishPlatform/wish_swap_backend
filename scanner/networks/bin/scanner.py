@@ -7,6 +7,7 @@ from scanner.scanner.events.block_event import BlockEvent
 from scanner.scanner.services.scanner_polling import ScannerPolling
 from scanner.mywish_models.models import Dex, Token, session
 
+
 class BinScanner(ScannerPolling):
 
     network_types=['Binance-Chain',]
