@@ -5,7 +5,7 @@ from wish_swap.transfers.models import Transfer
 from wish_swap.networks.models import GasInfo
 from wish_swap.settings import NETWORKS, TX_STATUS_CHECK_TIMEOUT
 import time
-from receiver import send_rabbitmq_message
+from rabbitmq_api import send_rabbitmq_message
 
 
 def send_transfer_to_queue(transfer):

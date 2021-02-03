@@ -8,7 +8,7 @@ from wish_swap.settings import NETWORKS
 import requests
 import json
 from wish_swap.transfers.api import send_transfer_to_queue
-from receiver import send_rabbitmq_message
+from rabbitmq_api import send_rabbitmq_message
 
 
 def send_payment_to_bot(transfer, payment):
