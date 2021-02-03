@@ -13,10 +13,10 @@ from rabbitmq_api import send_rabbitmq_message
 
 def send_payment_to_bot(transfer, payment):
     if transfer:
-        send_rabbitmq_message(transfer.network + '-bot', 'payment', {'paymentId': payment.id})
+        send_rabbitmq_message(transfer.network + '-bot', 'payment', json.dumps({'paymentId': payment.id}))
     else:
         for network in NETWORKS.keys():
-            send_rabbitmq_message(network + '-bot', 'payment', {'paymentId': payment.id})
+            send_rabbitmq_message(network + '-bot', 'payment', json.dumps({'paymentId': payment.id}))
 
 
 def create_transfer_if_payment_valid(payment):

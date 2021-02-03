@@ -33,7 +33,7 @@ def send_transfer_to_queue(transfer):
 
 
 def send_transfer_to_bot(transfer):
-    send_rabbitmq_message(transfer.network + '-bot', 'transfer', {'transferId': transfer.id})
+    send_rabbitmq_message(transfer.network + '-bot', 'transfer', json.dumps({'transferId': transfer.id}))
 
 
 def parse_execute_transfer_message(message, queue):
