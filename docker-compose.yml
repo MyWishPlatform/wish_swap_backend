@@ -70,6 +70,17 @@ services:
     restart: unless-stopped
     networks:
       wish-swap-net:
+  telegram_bots:
+    env_file: .env
+    build:
+      context: .
+      dockerfile: dockerfiles/telegram_bots.Dockerfile
+    depends_on:
+      - db
+      - rabbitmq
+    restart: unless-stopped
+    networks:
+      wish-swap-net:
 
 networks:
   wish-swap-net:
