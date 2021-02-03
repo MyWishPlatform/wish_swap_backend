@@ -26,14 +26,14 @@ class BinScanner(ScannerPolling):
                 swap_address = token.swap_address
                 block=self.network.get_block(token, swap_address, int(time.time()*1000-604800000))
                 self.process_block(block)
-                time.sleep(2)
+                #time.sleep(2)
             while True:
                 for token in tokens:
                     swap_address = token.swap_address
                     block = self.network.get_block(token, swap_address, int(time.time() * 1000 - 604800000))
                     self.process_block(block)
-                    time.sleep(2)
-                time.sleep(10)
+                    #time.sleep(2)
+                #time.sleep(10)
                 #disabled confirms
                 '''transfers = session.query(Transfer).filter(getattr(Transfer, 'status').in_(status)).filter(getattr(Transfer, 'network').in_(network_types)).all()
                 print(f'len:{len(transfers)}')
@@ -51,7 +51,6 @@ class BinScanner(ScannerPolling):
                     pass
             print('got out of the main loop')
         except Exception as e:
-            print(e)
             send_to_backend('scanner_crash', 'Binance-Chain-bot', 'scanner is dead')
             try:
                 with open(os.path.join(self.base_dir, 'Binance-Chain', 'status'), 'r') as file:
@@ -72,7 +71,7 @@ class BinScanner(ScannerPolling):
             # time.sleep(10)
 
 
-def process_block(self, block: WrapperBlock):
+    def process_block(self, block: WrapperBlock):
         address_transactions = collections.defaultdict(list)
         for transaction in block.transactions:
             self._check_tx_to(transaction, address_transactions)
