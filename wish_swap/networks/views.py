@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from wish_swap.tokens.models import Token
 
 
-class GasInfoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class GasInfoViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     queryset = GasInfo.objects.all()
     serializer_class = GasInfoSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
