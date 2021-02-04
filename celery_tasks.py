@@ -1,6 +1,5 @@
 from wish_swap.transfers.models import Transfer
 from celery import shared_task
-from wish_swap.transfers.api import send_transfer_to_queue
 
 
 @shared_task
@@ -11,5 +10,5 @@ def push_transfers():
         return
     print(f'PUSHING TRANSFERS: start pushing...', flush=True)
     for transfer in transfers:
-        send_transfer_to_queue(transfer)
+        transfer.send_to_queue('transfers')
     print(f'PUSHING TRANSFERS: pushing completed', flush=True)

@@ -2,21 +2,10 @@ from wish_swap.payments.models import Payment
 from wish_swap.settings import NETWORKS_BY_NUMBER
 from wish_swap.tokens.models import Token, Dex
 from wish_swap.transfers.models import Transfer
-from wish_swap.networks.models import GasInfo
 from web3 import Web3, HTTPProvider
 from wish_swap.settings import NETWORKS
 import requests
 import json
-from wish_swap.transfers.api import send_transfer_to_queue
-from rabbitmq_api import send_rabbitmq_message
-
-
-def send_payment_to_bot(transfer, payment):
-    if transfer:
-        send_rabbitmq_message(transfer.network + '-bot', 'payment', json.dumps({'paymentId': payment.id}))
-    else:
-        for network in NETWORKS.keys():
-            send_rabbitmq_message(network + '-bot', 'payment', json.dumps({'paymentId': payment.id}))
 
 
 def create_transfer_if_payment_valid(payment):
@@ -78,10 +67,10 @@ def parse_payment(message, queue):
         print(f'{queue}: payment saved \n{payment}\n', flush=True)
 
         transfer = create_transfer_if_payment_valid(payment)
-        send_payment_to_bot(transfer, payment)
+        payment.send_to_queue('bot')
         if transfer:
             print(f'{queue}: payment validation success, send transfer to queue \n{payment}\n', flush=True)
-            send_transfer_to_queue(transfer)
+            transfer.send_to_queue('transfers')
         else:
             print(f'{queue}: payment validation failed, abort transfer \n{payment}\n', flush=True)
     else:

@@ -1,4 +1,7 @@
 from django.db import models
+import rabbitmq
+import json
+from wish_swap.settings import NETWORKS, NETWORKS_BY_NUMBER
 
 
 class Payment(models.Model):
@@ -18,3 +21,11 @@ class Payment(models.Model):
                 f'\ttransfer address: {self.transfer_address}\n'
                 f'\ttransfer network number: {self.transfer_network_number}\n'
                 f'\tvalidation status: {self.validation_status}')
+
+    def send_to_queue(self, queue):  # queue is 'transfers' / 'bot'
+        if self.validation_status == 'SUCCESS':
+            network = NETWORKS_BY_NUMBER[int(self.transfer_network_number)]
+            rabbitmq.publish_message(f'{network}-{queue}', 'payment', {'paymentId': self.id})
+        else:
+            for network in NETWORKS.keys():
+                rabbitmq.publish_message(f'{network}-{queue}', 'payment', {'paymentId': self.id})

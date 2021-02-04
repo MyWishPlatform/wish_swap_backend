@@ -1,39 +1,7 @@
-import pika
-import os
-import json
 from wish_swap.transfers.models import Transfer
 from wish_swap.networks.models import GasInfo
 from wish_swap.settings import NETWORKS, TX_STATUS_CHECK_TIMEOUT
 import time
-from rabbitmq_api import send_rabbitmq_message
-
-
-def send_transfer_to_queue(transfer):
-    connection = pika.BlockingConnection(pika.ConnectionParameters(
-        'rabbitmq',
-        5672,
-        os.getenv('RABBITMQ_DEFAULT_VHOST', 'wish_swap'),
-        pika.PlainCredentials(os.getenv('RABBITMQ_DEFAULT_USER', 'wish_swap'),
-                              os.getenv('RABBITMQ_DEFAULT_PASS', 'wish_swap')),
-    ))
-    channel = connection.channel()
-    channel.queue_declare(
-        queue=transfer.network + '-transfers',
-        durable=True,
-        auto_delete=False,
-        exclusive=False
-    )
-    channel.basic_publish(
-        exchange='',
-        routing_key=transfer.network + '-transfers',
-        body=json.dumps({'transferId': transfer.id, 'status': 'COMMITTED'}),
-        properties=pika.BasicProperties(type='execute_transfer'),
-    )
-    connection.close()
-
-
-def send_transfer_to_bot(transfer):
-    send_rabbitmq_message(transfer.network + '-bot', 'transfer', json.dumps({'transferId': transfer.id}))
 
 
 def parse_execute_transfer_message(message, queue):
@@ -55,7 +23,7 @@ def parse_execute_transfer_message(message, queue):
             transfer.save()
             print(f'{queue}: high gas price ({gas_price} Gwei > {gas_price_limit} Gwei), '
                   f'postpone transfer \n{transfer}\n', flush=True)
-            send_transfer_to_bot(transfer)
+            transfer.send_to_queue('bot')
             return
 
     transfer.execute()
@@ -63,11 +31,11 @@ def parse_execute_transfer_message(message, queue):
 
     if transfer.status == 'FAIL':
         print(f'{queue}: failed transfer \n{transfer}\n', flush=True)
-        send_transfer_to_bot(transfer)
+        transfer.send_to_queue('bot')
     else:
         transfer.update_status()
         transfer.save()
-        send_transfer_to_bot(transfer)
+        transfer.send_to_queue('bot')
         while transfer.status == 'PENDING':
             print(f'{queue}: pending transfer \n{transfer}\n', flush=True)
             print(f'{queue}: waiting {TX_STATUS_CHECK_TIMEOUT} seconds before next status check...\n', flush=True)
@@ -78,7 +46,7 @@ def parse_execute_transfer_message(message, queue):
             print(f'{queue}: successful transfer \n{transfer}\n', flush=True)
         else:
             print(f'{queue}: failed transfer after pending \n{transfer}\n', flush=True)
-        send_transfer_to_bot(transfer)
+        transfer.send_to_queue('bot')
 
     timeout = NETWORKS[network]['transfer_timeout']
     print(f'{queue}: waiting {timeout} seconds before next transfer...\n', flush=True)

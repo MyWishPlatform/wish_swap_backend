@@ -3,6 +3,7 @@ from web3 import Web3, HTTPProvider
 from web3.exceptions import TransactionNotFound
 from wish_swap.settings import NETWORKS, GAS_LIMIT
 from wish_swap.transfers.binance_chain_api import BinanceChainInterface, get_tx_info
+import rabbitmq
 
 
 class Transfer(models.Model):
@@ -99,3 +100,8 @@ class Transfer(models.Model):
                 self.tx_error = data
                 self.status = 'FAIL'
             self.save()
+
+    def send_to_queue(self, queue):  # queue is 'transfers' / 'bot'
+        message = {'transferId': self.id, 'status': 'COMMITTED'}
+        type = 'transfer' if queue == 'bot' else 'execute_transfer'
+        rabbitmq.publish_message(f'{self.network}-{queue}', type, message)
