@@ -49,6 +49,7 @@ class BinScanner(ScannerPolling):
                         file.write('alive')
                 except FileNotFoundError:
                     pass
+                time.sleep(20)
             print('got out of the main loop')
         except Exception as e:
             send_to_backend('scanner_crash', 'Binance-Chain-bot', 'scanner is dead')
@@ -62,13 +63,14 @@ class BinScanner(ScannerPolling):
                 if write:
                     with open(os.path.join(self.base_dir, 'Binance-Chain', 'status'), 'w') as file:
                         file.write('dead')
+                time.sleep(20)
             except FileNotFoundError:
                 print('except creation')
                 filename = os.path.join(self.base_dir, 'Binance-Chain')
                 os.makedirs(filename, exist_ok=True)
                 with open(os.path.join(self.base_dir, 'Binance-Chain', 'status'), 'w') as file:
                     file.write('dead')
-            # time.sleep(10)
+                time.sleep(20)
 
 
     def process_block(self, block: WrapperBlock):
