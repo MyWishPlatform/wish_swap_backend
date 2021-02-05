@@ -1,5 +1,7 @@
 from django.db import models
 from encrypted_fields import fields
+from web3 import Web3, HTTPProvider
+from wish_swap.settings import NETWORKS, GAS_LIMIT
 
 
 class Dex(models.Model):
@@ -23,3 +25,19 @@ class Token(models.Model):
     symbol = models.CharField(max_length=50)
     network = models.CharField(max_length=100)
     is_original = models.BooleanField(default=False)
+
+    def change_fee(self, network_num, fee):
+        network = NETWORKS[self.token.network]
+        w3 = Web3(HTTPProvider(network['node']))
+        tx_params = {
+            'nonce': w3.eth.getTransactionCount(self.token.swap_owner, 'pending'),
+            'gasPrice': w3.eth.gasPrice,
+            'gas': GAS_LIMIT,
+        }
+        contract = w3.eth.contract(address=self.swap_address, abi=self.swap_abi)
+        func = contract.functions.setFeeAmountOfBlockchain(network_num, fee * 10 ** self.decimals)
+        initial_tx = func.buildTransaction(tx_params)
+        signed_tx = w3.eth.account.signTransaction(initial_tx, self.token.swap_secret)
+        tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
+        tx_hex = tx_hash.hex()
+        return tx_hex
