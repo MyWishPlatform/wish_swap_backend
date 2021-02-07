@@ -32,24 +32,6 @@ class Transfer(models.Model):
                 f'\ttx hash: {self.tx_hash}\n'
                 f'\ttx error: {self.tx_error}')
 
-    def _swap_contract_transfer(self):
-        network = NETWORKS[self.token.network]
-        w3 = Web3(HTTPProvider(network['node']))
-        tx_params = {
-            'nonce': w3.eth.getTransactionCount(self.token.swap_owner, 'pending'),
-            'gasPrice': w3.eth.gasPrice,
-            'gas': GAS_LIMIT,
-        }
-        contract = w3.eth.contract(address=self.token.swap_address, abi=self.token.swap_abi)
-        checksum_address = Web3.toChecksumAddress(self.address)
-        amount = int(self.amount) + int(self.fee_amount)
-        func = contract.functions.transferToUserWithFee(checksum_address, amount)
-        initial_tx = func.buildTransaction(tx_params)
-        signed_tx = w3.eth.account.signTransaction(initial_tx, self.token.swap_secret)
-        tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
-        tx_hex = tx_hash.hex()
-        return tx_hex
-
     def _binance_transfer(self):
         bnbcli = BinanceChainInterface()
         bnbcli.add_key('key', 'password', self.token.swap_secret)
@@ -85,7 +67,8 @@ class Transfer(models.Model):
     def execute(self):
         if self.token.network in ('Ethereum', 'Binance-Smart-Chain'):
             try:
-                self.tx_hash = self._swap_contract_transfer()
+                self.tx_hash = self.token.execute_function(
+                    'transferToUserWithFee', Web3.toChecksumAddress(self.address), self.amount)
                 self.status = 'PENDING'
             except Exception as e:
                 self.tx_error = repr(e)

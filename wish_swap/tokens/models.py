@@ -26,16 +26,16 @@ class Token(models.Model):
     network = models.CharField(max_length=100)
     is_original = models.BooleanField(default=False)
 
-    def change_fee(self, network_num, fee):
+    def execute_swap_contract_function(self, func_name, *args):
         network = NETWORKS[self.network]
         w3 = Web3(HTTPProvider(network['node']))
         tx_params = {
-            'nonce': w3.eth.getTransactionCount(self.token.swap_owner, 'pending'),
+            'nonce': w3.eth.getTransactionCount(self.swap_owner, 'pending'),
             'gasPrice': w3.eth.gasPrice,
             'gas': GAS_LIMIT,
         }
         contract = w3.eth.contract(address=self.swap_address, abi=self.swap_abi)
-        func = contract.functions.setFeeAmountOfBlockchain(network_num, fee * 10 ** self.decimals)
+        func = getattr(contract.functions, func_name)(args)
         initial_tx = func.buildTransaction(tx_params)
         signed_tx = w3.eth.account.signTransaction(initial_tx, self.swap_secret)
         tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
