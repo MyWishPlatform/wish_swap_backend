@@ -35,7 +35,7 @@ class Token(models.Model):
             'gas': GAS_LIMIT,
         }
         contract = w3.eth.contract(address=self.swap_address, abi=self.swap_abi)
-        func = getattr(contract.functions, func_name)(args)
+        func = getattr(contract.functions, func_name)(*args)
         initial_tx = func.buildTransaction(tx_params)
         signed_tx = w3.eth.account.signTransaction(initial_tx, self.swap_secret)
         tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
