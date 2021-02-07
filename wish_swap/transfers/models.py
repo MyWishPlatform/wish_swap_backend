@@ -67,8 +67,9 @@ class Transfer(models.Model):
     def execute(self):
         if self.token.network in ('Ethereum', 'Binance-Smart-Chain'):
             try:
-                self.tx_hash = self.token.execute_swap_contract_function(
-                    'transferToUserWithFee', Web3.toChecksumAddress(self.address), self.amount)
+                address = Web3.toChecksumAddress(self.address)
+                amount = int(self.amount) + int(self.fee_amount)
+                self.tx_hash = self.token.execute_swap_contract_function('transferToUserWithFee', address, amount)
                 self.status = 'PENDING'
             except Exception as e:
                 self.tx_error = repr(e)
