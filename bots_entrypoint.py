@@ -6,7 +6,6 @@ import traceback
 import threading
 from web3 import Web3
 import requests
-from bs4 import BeautifulSoup
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'wish_swap.settings')
 import django
