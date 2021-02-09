@@ -52,6 +52,42 @@ class Receiver(threading.Thread):
                         sleep(15)
                     self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive')
             sleep(15)
+            
+    def check_balances(self):
+        w3_eth = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['node']))
+        w3_bsc = Web3(Web3.HTTPProvider(NETWORKS['Binance-Smart-Chain']['node']))
+        eth_address = Dex.objects.get(name='Wish')['Ethereum'].swap_owner
+        bsc_address = Dex.objects.get(name='Wish')['Binance-Smart-Chain'].swap_owner
+        bin_address = Dex.objects.get(name='Wish')['Binance-Chain'].swap_address
+        eth_balance = w3_eth.eth.getBalance(eth_address)
+        bsc_balance = w3_bsc.eth.getBalance(bsc_address)
+        bin_balance = get_binance_balance(bin_address)
+        while True:
+            if self.network == 'Ethereum-bot' and eth_balance != w3_eth.eth.getBalance(eth_address):
+                if eth_balance < w3_eth.eth.getBalance(eth_address):
+                    self.bot.send_message(GROUP_ID, f'{self.network}: balance replenished')
+                    eth_balance = w3_eth.eth.getBalance(eth_address)
+                else:
+                    eth_balance = w3_eth.eth.getBalance(eth_address)
+            if self.network == 'Ethereum-bot' and w3_eth.eth.getBalance(eth_address) < NETWORKS['Ethereum']['warning_levels'][-1]:
+                self.bot.send_message(GROUP_ID, f'{self.network}: WARNING! Balance is less then')
+            if self.network == 'Binance-Smart-Chain-bot' and bsc_balance != w3_bsc.eth.getBalance(bsc_address):
+                if bsc_balance < w3_bsc.eth.getBalance(bsc_address):
+                    self.bot.send_message(GROUP_ID, f'{self.network}: balance replenished')
+                    bsc_balance = w3_bsc.eth.getBalance(bsc_address)
+                else:
+                    bsc_balance = w3_bsc.eth.getBalance(bsc_address)
+            if self.network == 'Binance-Smart-Chain-bot' and w3_bsc.eth.getBalance(bsc_address) < NETWORKS['Binance-Smart-Chain']['warning_levels'][-1]:
+                self.bot.send_message(GROUP_ID, f'{self.network}: WARNING! Balance is less then')
+            if self.network == 'Binance-Chain-bot' and bin_balance != get_binance_balance(bin_address):
+                if bin_balance < get_binance_balance(bin_address):
+                    self.bot.send_message(GROUP_ID, f'{self.network}: balance replenished')
+                    bin_balance = get_binance_balance(bin_address)
+                else:
+                    bin_balance = get_binance_balance(bin_address)
+            if self.network == 'Binance-Chain-bot' and get_binance_balance(bin_address) < NETWORKS['Binance']['wraning_levels'][-1]:
+                self.bot.send_message(GROUP_ID, f'{self.network}: WARNING! Balance is less then')
+            sleep(15)
 
 
     def start_polling(self):
@@ -86,6 +122,7 @@ class Receiver(threading.Thread):
         print(f'{self.network}: queue was started', flush=True)
         threading.Thread(target=self.start_polling).start()
         threading.Thread(target=self.check_chains).start()
+        threading.Thread(target=self.check_balances).start()
         #self.bot.send_message(GROUP_ID, f'{self.network}: queue was started')
         channel.start_consuming()
 
@@ -130,6 +167,19 @@ class Receiver(threading.Thread):
     def unknown_handler(self, message):
         print(f'{self.network}: unknown message has been received\n', message, flush=True)
         #self.bot.send_message(GROUP_ID, f'{self.network}: unknown message has been received\n')
+        
+def get_binance_balance(address):
+    url = f'{NETWORKS["Binance-Chain"]["api-url"]}account/{address}?format=json'
+    response = requests.get(url)
+    result = json.loads(response.text)
+    balance = 0
+    for row in result['balances']:
+        if row['symbol'] == 'BNB':
+            balance = row['free']
+    if balance != 0 :
+        return balance
+    else:
+        return None
 
 if __name__ == '__main__':
     for network, params in NETWORKS.items():
