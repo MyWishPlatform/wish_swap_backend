@@ -12,6 +12,7 @@ class Payment(models.Model):
     transfer_address = models.CharField(max_length=100)
     transfer_network_number = models.IntegerField()
     validation_status = models.CharField(max_length=100, default='WAITING FOR VALIDATION')
+    bot_message_id = models.IntegerField(default=0)
 
     def __str__(self):
         symbol = self.token.symbol
