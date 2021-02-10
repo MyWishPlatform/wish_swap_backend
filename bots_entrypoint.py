@@ -13,7 +13,7 @@ django.setup()
 
 from wish_swap.settings_local import NETWORKS
 from wish_swap.settings_local import GROUP_ID
-from wish_swap.settings_local import TIMEOUT
+from wish_swap.settings_local import BOT_TIMEOUT
 #from wish_swap.payments.api import parse_payment
 from wish_swap.transfers.models import Transfer
 from wish_swap.payments.models import Payment
