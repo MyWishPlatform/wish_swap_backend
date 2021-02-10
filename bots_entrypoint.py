@@ -13,6 +13,7 @@ django.setup()
 
 from wish_swap.settings_local import NETWORKS
 from wish_swap.settings_local import GROUP_ID
+from wish_swap.settings_local import TIMEOUT
 #from wish_swap.payments.api import parse_payment
 from wish_swap.transfers.models import Transfer
 from wish_swap.payments.models import Payment
@@ -41,9 +42,9 @@ class Receiver(threading.Thread):
                         data_eth = f_eth.read()
                         f_eth.close()
                         print(data_eth)
-                        sleep(15)
+                        sleep(TIMEOUT)
                     self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive', reply_to_message_id=msg.message_id)
-                sleep(15)
+                sleep(TIMEOUT)
         elif self.network == 'Binance-Smart-Chain-bot':
             w3 = Web3(Web3.HTTPProvider(NETWORKS['Binance-Smart-Chain']['node']))
             while True:
@@ -59,9 +60,9 @@ class Receiver(threading.Thread):
                         print(data_bsc)
                         bsc_block = w3.eth.blockNumber
                         print(bsc_block)
-                        sleep(15)
+                        sleep(TIMEOUT)
                     self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive', reply_to_message_id=msg.message_id)
-                sleep(15)
+                sleep(TIMEOUT)
             
     def check_balances(self):
         w3_eth = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['node']))
@@ -97,7 +98,7 @@ class Receiver(threading.Thread):
                     bin_balance = get_binance_balance(bin_address)
             if self.network == 'Binance-Chain-bot' and get_binance_balance(bin_address) < NETWORKS['Binance']['wraning_levels'][-1]:
                 self.bot.send_message(GROUP_ID, f'{self.network}: WARNING! Balance is less then')
-            sleep(15)
+            sleep(TIMEOUT)
 
 
     def start_polling(self):
