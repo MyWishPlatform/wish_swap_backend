@@ -78,6 +78,8 @@ services:
     depends_on:
       - db
       - rabbitmq
+    volumes:
+      - ./scanner/settings:/app/scanner/settings
     restart: unless-stopped
     networks:
       wish-swap-net:
