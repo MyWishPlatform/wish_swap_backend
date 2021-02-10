@@ -121,13 +121,13 @@ class Receiver(threading.Thread):
         ))
         channel = connection.channel()
         channel.queue_declare(
-            queue=self.network+'-bot',
+            queue=self.network,
             durable=True,
             auto_delete=False,
             exclusive=False
         )
         channel.basic_consume(
-            queue=self.network+'-bot',
+            queue=self.network,
             on_message_callback=self.callback
         )
         print(f'{self.network}: queue was started', flush=True)
