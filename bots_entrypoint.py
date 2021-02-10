@@ -25,32 +25,43 @@ class Receiver(threading.Thread):
         self.bot = telebot.TeleBot(bot_token)
 
     def check_chains(self):
-        w3 = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['node']))
-        while True:
-            if self.network == 'Ethereum-bot':
+        if self.network == 'Ethereum-bot':
+            w3 = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['node']))
+            while True:
                 f_eth = open('scanner/settings/Ethereum', 'r')
-                data_eth = int(f_eth.read())
-                f_eth.close()
+                data_eth = f_eth.read()
+                print(f'{self.network}: block from file <{data_eth}>')
                 eth_block = w3.eth.blockNumber
-                if abs(eth_block - data_eth) > 50:
-                    self.bot.send_message(GROUP_ID, f'{self.network}: scanner crashed')
-                    while abs(eth_block - data_eth) > 50:
+                if abs(eth_block - int(data_eth)) > 50:
+                    msg = self.bot.send_message(GROUP_ID, f'{self.network}: scanner crashed')
+                    while abs(eth_block - int(data_eth)) > 50:
+                        eth_block = w3.eth.blockNumber
+                        print(eth_block)
+                        f_eth = open('scanner/settings/Ethereum', 'r')
+                        data_eth = f_eth.read()
+                        f_eth.close()
+                        print(data_eth)
                         sleep(15)
-                    self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive')
-            elif self.network == 'Binance-Smart-Chain-Bot':
+                    self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive', reply_to_message_id=msg.message_id)
+                sleep(15)
+        elif self.network == 'Binance-Smart-Chain-bot':
+            w3 = Web3(Web3.HTTPProvider(NETWORKS['Binance-Smart-Chain']['node']))
+            while True:
                 f_bsc = open('scanner/settings/Binance-Smart-Chain', 'r')
-                data_bsc = int(f_bsc.read())
-                f_bsc.close()
-                req = requests.get('https://bscscan.com/blocks')
-                content = BeautifulSoup(req.text, 'html.parser')
-                assets = content.select('tbody tr td a')
-                bsc_block = int(assets[0].text)
-                if abs(data_bsc - bsc_block) > 50:
-                    self.bot.send_message(GROUP_ID, f'{self.network}: scanner crashed')
-                    while abs(bsc_block - data_bsc) > 50:
+                data_bsc = f_bsc.read()
+                bsc_block = w3.eth.blockNumber
+                if abs(int(data_bsc) - bsc_block) > 50:
+                    msg = self.bot.send_message(GROUP_ID, f'{self.network}: scanner crashed')
+                    while abs(bsc_block - int(data_bsc)) > 50:
+                        f_bsc = open('scanner/settings/Binance-Smart-Chain', 'r')
+                        data_bsc = f_bsc.read()
+                        f_bsc.close()
+                        print(data_bsc)
+                        bsc_block = w3.eth.blockNumber
+                        print(bsc_block)
                         sleep(15)
-                    self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive')
-            sleep(15)
+                    self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive', reply_to_message_id=msg.message_id)
+                sleep(15)
             
     def check_balances(self):
         w3_eth = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['node']))
