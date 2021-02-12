@@ -14,11 +14,9 @@ django.setup()
 from wish_swap.settings_local import NETWORKS
 from wish_swap.settings_local import GROUP_ID
 from wish_swap.settings_local import BOT_TIMEOUT
-#from wish_swap.payments.api import parse_payment
 from wish_swap.transfers.models import Transfer
 from wish_swap.payments.models import Payment
 from wish_swap.tokens.models import Dex
-from wish_swap.transfers.api import parse_execute_transfer_message
 
 class Receiver(threading.Thread):
     def __init__(self, network, bot_token):
@@ -167,7 +165,6 @@ class Receiver(threading.Thread):
         msg_id = msg.message_id
         paym.bot_message_id = msg_id
         paym.save()
-        #parse_payment(message, self.network)
 
     def transfer(self, message):
         #print(f'{self.network}: execute transfer message has been received\n', flush=True)
@@ -175,7 +172,6 @@ class Receiver(threading.Thread):
         #mess_string = str(trans.payment)
         mess_id = trans.payment.bot_message_id
         self.bot.send_message(GROUP_ID, f'Transfer message\n{str(trans.payment)}', reply_to_message_id=mess_id)
-        parse_execute_transfer_message(message, self.network)
 
     def callback(self, ch, method, properties, body):
         # print('RECEIVER: received', method, properties, body, flush=True)
