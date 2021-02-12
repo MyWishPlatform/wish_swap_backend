@@ -17,6 +17,7 @@ from wish_swap.settings_local import BOT_TIMEOUT
 #from wish_swap.payments.api import parse_payment
 from wish_swap.transfers.models import Transfer
 from wish_swap.payments.models import Payment
+from wish_swap.tokens.models import Dex
 from wish_swap.transfers.api import parse_execute_transfer_message
 
 class Receiver(threading.Thread):
@@ -27,7 +28,7 @@ class Receiver(threading.Thread):
 
     def check_chains(self):
         if self.network == 'Ethereum-bot':
-            w3 = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['node']))
+            w3 = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['bot']['node']))
             while True:
                 f_eth = open('scanner/settings/Ethereum', 'r')
                 data_eth = f_eth.read()
@@ -37,16 +38,16 @@ class Receiver(threading.Thread):
                     msg = self.bot.send_message(GROUP_ID, f'{self.network}: scanner crashed')
                     while abs(eth_block - int(data_eth)) > 50:
                         eth_block = w3.eth.blockNumber
-                        print(eth_block)
+                        print(f'{self.network} : web3 block {eth_block}')
                         f_eth = open('scanner/settings/Ethereum', 'r')
                         data_eth = f_eth.read()
                         f_eth.close()
-                        print(data_eth)
-                        sleep(TIMEOUT)
+                        print(f'{self.network} : block from file {data_eth}')
+                        sleep(BOT_TIMEOUT)
                     self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive', reply_to_message_id=msg.message_id)
-                sleep(TIMEOUT)
+                sleep(BOT_TIMEOUT)
         elif self.network == 'Binance-Smart-Chain-bot':
-            w3 = Web3(Web3.HTTPProvider(NETWORKS['Binance-Smart-Chain']['node']))
+            w3 = Web3(Web3.HTTPProvider(NETWORKS['Binance-Smart-Chain']['bot']['node']))
             while True:
                 f_bsc = open('scanner/settings/Binance-Smart-Chain', 'r')
                 data_bsc = f_bsc.read()
@@ -57,48 +58,69 @@ class Receiver(threading.Thread):
                         f_bsc = open('scanner/settings/Binance-Smart-Chain', 'r')
                         data_bsc = f_bsc.read()
                         f_bsc.close()
-                        print(data_bsc)
+                        print(f'{self.network} : block from file {data_bsc}')
                         bsc_block = w3.eth.blockNumber
-                        print(bsc_block)
-                        sleep(TIMEOUT)
+                        print(f'{self.network} : web3 block {bsc_block}')
+                        sleep(BOT_TIMEOUT)
                     self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive', reply_to_message_id=msg.message_id)
-                sleep(TIMEOUT)
+                sleep(BOT_TIMEOUT)
             
     def check_balances(self):
-        w3_eth = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['node']))
-        w3_bsc = Web3(Web3.HTTPProvider(NETWORKS['Binance-Smart-Chain']['node']))
+        w3_eth = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['bot']['node']))
+        w3_bsc = Web3(Web3.HTTPProvider(NETWORKS['Binance-Smart-Chain']['bot']['node']))
         eth_address = Dex.objects.get(name='Wish')['Ethereum'].swap_owner
         bsc_address = Dex.objects.get(name='Wish')['Binance-Smart-Chain'].swap_owner
         bin_address = Dex.objects.get(name='Wish')['Binance-Chain'].swap_address
-        eth_balance = w3_eth.eth.getBalance(eth_address)
-        bsc_balance = w3_bsc.eth.getBalance(bsc_address)
+        eth_balance = w3_eth.eth.getBalance(eth_address)/NETWORKS['Ethereum']['decimals']
+        bsc_balance = w3_bsc.eth.getBalance(bsc_address)/NETWORKS['Binance-Smart-Chain']['decimals']
         bin_balance = get_binance_balance(bin_address)
+        if self.network == 'Ethereum-bot':
+            print(f'{self.network} balance = {eth_balance}')
+        elif self.network == 'Binance-Smart-Chain-bot':
+            print(f'{self.network} balance = {bsc_balance}')
+        elif self.network == 'Binance-Chain-bot':
+            print(f'{self.network} balance = {bin_balance}')
+        flag_eth = False
+        flag_bsc = False
+        flag_bin = False
         while True:
-            if self.network == 'Ethereum-bot' and eth_balance != w3_eth.eth.getBalance(eth_address):
-                if eth_balance < w3_eth.eth.getBalance(eth_address):
+            if self.network == 'Ethereum-bot' and eth_balance != w3_eth.eth.getBalance(eth_address)/NETWORKS['Ethereum']['decimals']:
+                if eth_balance < w3_eth.eth.getBalance(eth_address)/NETWORKS['Ethereum']['decimals']:
                     self.bot.send_message(GROUP_ID, f'{self.network}: balance replenished')
-                    eth_balance = w3_eth.eth.getBalance(eth_address)
+                    eth_balance = w3_eth.eth.getBalance(eth_address)/NETWORKS['Ethereum']['decimals']
                 else:
-                    eth_balance = w3_eth.eth.getBalance(eth_address)
-            if self.network == 'Ethereum-bot' and w3_eth.eth.getBalance(eth_address) < NETWORKS['Ethereum']['warning_levels'][-1]:
-                self.bot.send_message(GROUP_ID, f'{self.network}: WARNING! Balance is less then')
-            if self.network == 'Binance-Smart-Chain-bot' and bsc_balance != w3_bsc.eth.getBalance(bsc_address):
-                if bsc_balance < w3_bsc.eth.getBalance(bsc_address):
+                    eth_balance = w3_eth.eth.getBalance(eth_address)/NETWORKS['Ethereum']['decimals']
+            if self.network == 'Ethereum-bot' and w3_eth.eth.getBalance(eth_address)/NETWORKS['Ethereum']['decimals'] < NETWORKS['Ethereum']['warning_level'] and flag_eth == False:
+                msg_eth = self.bot.send_message(GROUP_ID, f"{self.network}: WARNING! Balance is less then {NETWORKS['Ethereum']['warning_level']}")
+                flag_eth = True
+            if self.network == 'Ethereum-bot' and w3_eth.eth.getBalance(eth_address)/NETWORKS['Ethereum']['decimals'] > NETWORKS['Ethereum']['warning_level'] and flag_eth == True:
+                self.bot.send_message(GROUP_ID, f"{self.network}: Balance is ok", reply_to_message_id=msg_eth.message_id)
+                flag_eth = False
+            if self.network == 'Binance-Smart-Chain-bot' and bsc_balance != w3_bsc.eth.getBalance(bsc_address)/NETWORKS['Binance-Smart-Chain']['decimals']:
+                if bsc_balance < w3_bsc.eth.getBalance(bsc_address)/NETWORKS['Binance-Smart-Chain']['decimals']:
                     self.bot.send_message(GROUP_ID, f'{self.network}: balance replenished')
-                    bsc_balance = w3_bsc.eth.getBalance(bsc_address)
+                    bsc_balance = w3_bsc.eth.getBalance(bsc_address)/NETWORKS['Binance-Smart-Chain']['decimals']
                 else:
-                    bsc_balance = w3_bsc.eth.getBalance(bsc_address)
-            if self.network == 'Binance-Smart-Chain-bot' and w3_bsc.eth.getBalance(bsc_address) < NETWORKS['Binance-Smart-Chain']['warning_levels'][-1]:
-                self.bot.send_message(GROUP_ID, f'{self.network}: WARNING! Balance is less then')
+                    bsc_balance = w3_bsc.eth.getBalance(bsc_address)/NETWORKS['Binance-Smart-Chain']['decimals']
+            if self.network == 'Binance-Smart-Chain-bot' and w3_bsc.eth.getBalance(bsc_address)/NETWORKS['Binance-Smart-Chain']['decimals'] < NETWORKS['Binance-Smart-Chain']['warning_level'] and flag_bsc == False:
+                msg_bsc = self.bot.send_message(GROUP_ID, f"{self.network}: WARNING! Balance is less then {NETWORKS['Binance-Smart-Chain']['warning_level']}")
+                flag_bsc = True
+            if self.network == 'Binance-Smart-Chain-bot' and w3_bsc.eth.getBalance(bsc_address)/NETWORKS['Binance-Smart-Chain']['decimals'] > NETWORKS['Binance-Smart-Chain']['warning_level'] and flag_bsc == True:
+                self.bot.send_message(GROUP_ID, f"{self.network}: Balance is ok", reply_to_message_id=msg_bsc.message_id)
+                flag_bsc = False
             if self.network == 'Binance-Chain-bot' and bin_balance != get_binance_balance(bin_address):
                 if bin_balance < get_binance_balance(bin_address):
                     self.bot.send_message(GROUP_ID, f'{self.network}: balance replenished')
                     bin_balance = get_binance_balance(bin_address)
                 else:
                     bin_balance = get_binance_balance(bin_address)
-            if self.network == 'Binance-Chain-bot' and get_binance_balance(bin_address) < NETWORKS['Binance']['wraning_levels'][-1]:
-                self.bot.send_message(GROUP_ID, f'{self.network}: WARNING! Balance is less then')
-            sleep(TIMEOUT)
+            if self.network == 'Binance-Chain-bot' and get_binance_balance(bin_address) < NETWORKS['Binance-Chain']['warning_level'] and flag_bin == False:
+                msg_bin = self.bot.send_message(GROUP_ID, f"{self.network}: WARNING! Balance is less then {NETWORKS['Binance-Chain']['warning_level']}")
+                flag_bin = False
+            if self.network == 'Binance-Chain-bot' and get_binance_balance(bin_address) > NETWORKS['Binance-Chain']['warning_level'] and flag_bin == True:
+                self.bot.send_message(GROUP_ID, f"{self.network}: Balance is ok", reply_to_message_id=msg_bin.message_id)
+                flag_bin = True
+            sleep(BOT_TIMEOUT)
 
 
     def start_polling(self):
@@ -138,11 +160,10 @@ class Receiver(threading.Thread):
         channel.start_consuming()
 
     def payment(self, message):
-        paym = Payment.objects.get(id=message['PaymentID'])
+        paym = Payment.objects.get(id=message['paymentId'])
+        from_network = paym.token.network
         #print(f'{self.network}: payment message has been received\n', flush=True)
-        mess_string = paym.__str__
-        msg = self.bot.send_message(GROUP_ID, f'{self.network}: payment message has been received\n'
-                                              f'{mess_string}')
+        msg = self.bot.send_message(GROUP_ID, f'Payment message\n{str(paym)}')
         msg_id = msg.message_id
         paym.bot_message_id = msg_id
         paym.save()
@@ -150,19 +171,19 @@ class Receiver(threading.Thread):
 
     def transfer(self, message):
         #print(f'{self.network}: execute transfer message has been received\n', flush=True)
-        trans = Transfer.objects.get(id=message['TransferID'])
-        mess_string = trans.__str__
+        trans = Transfer.objects.get(id=message['transferId'])
+        #mess_string = str(trans.payment)
         mess_id = trans.payment.bot_message_id
-        self.bot.send_message(GROUP_ID, f'{self.network}: transfer message has been received\n{mess_string}',
-                              reply_to_message_id=mess_id)
+        self.bot.send_message(GROUP_ID, f'Transfer message\n{str(trans.payment)}', reply_to_message_id=mess_id)
         parse_execute_transfer_message(message, self.network)
 
     def callback(self, ch, method, properties, body):
         # print('RECEIVER: received', method, properties, body, flush=True)
         try:
             message = json.loads(body.decode())
-            if message.get('status', '') == 'COMMITTED':
-                getattr(self, properties.type, self.unknown_handler)(message)
+            getattr(self, properties.type, self.unknown_handler)(message)
+            '''if message.get('status', '') == 'COMMITTED':
+                getattr(self, properties.type, self.unknown_handler)(message)'''
         except Exception as e:
             print('\n'.join(traceback.format_exception(*sys.exc_info())),
                   flush=True)
@@ -170,9 +191,11 @@ class Receiver(threading.Thread):
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def scanner_crash(self, message):
+        #print(f'{self.network}: scanner crashed\n')
         self.bot.send_message(GROUP_ID, f'{self.network}: scanner crashed\n')
 
     def scanner_up(self, message):
+        #print(f'{self.network}: scanner is alive\n')
         self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive\n')
 
     def unknown_handler(self, message):
@@ -188,7 +211,7 @@ def get_binance_balance(address):
         if row['symbol'] == 'BNB':
             balance = row['free']
     if balance != 0 :
-        return balance
+        return float(balance)
     else:
         return None
 
