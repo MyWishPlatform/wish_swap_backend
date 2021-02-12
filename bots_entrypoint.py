@@ -171,7 +171,7 @@ class Receiver(threading.Thread):
         trans = Transfer.objects.get(id=message['transferId'])
         #mess_string = str(trans.payment)
         mess_id = trans.payment.bot_message_id
-        self.bot.send_message(GROUP_ID, f'Transfer message\n{str(trans.payment)}', reply_to_message_id=mess_id)
+        self.bot.send_message(GROUP_ID, f'Transfer message\n{str(trans)}', reply_to_message_id=mess_id)
 
     def callback(self, ch, method, properties, body):
         # print('RECEIVER: received', method, properties, body, flush=True)
