@@ -116,10 +116,10 @@ class Receiver(threading.Thread):
                     bin_balance = get_binance_balance(bin_address)
             if self.network == 'Binance-Chain-bot' and get_binance_balance(bin_address) < NETWORKS['Binance-Chain']['warning_level'] and flag_bin == False:
                 msg_bin = self.bot.send_message(GROUP_ID, f"{self.network}: WARNING! Balance is less then {NETWORKS['Binance-Chain']['warning_level']}")
-                flag_bin = False
+                flag_bin = True
             if self.network == 'Binance-Chain-bot' and get_binance_balance(bin_address) > NETWORKS['Binance-Chain']['warning_level'] and flag_bin == True:
                 self.bot.send_message(GROUP_ID, f"{self.network}: Balance is ok", reply_to_message_id=msg_bin.message_id)
-                flag_bin = True
+                flag_bin = False
             sleep(BOT_TIMEOUT)
 
 
