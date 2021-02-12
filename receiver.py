@@ -1,4 +1,3 @@
-import pika
 import os
 import traceback
 import threading
@@ -13,6 +12,7 @@ from wish_swap.settings import NETWORKS
 from wish_swap.payments.api import parse_payment
 from wish_swap.transfers.models import Transfer
 from wish_swap.transfers.api import parse_execute_transfer_message
+import rabbitmq
 
 
 class Receiver(threading.Thread):
@@ -21,22 +21,8 @@ class Receiver(threading.Thread):
         self.network = network
 
     def run(self):
-        connection = pika.BlockingConnection(pika.ConnectionParameters(
-            'rabbitmq',
-            5672,
-            os.getenv('RABBITMQ_DEFAULT_VHOST', 'wish_swap'),
-            pika.PlainCredentials(os.getenv('RABBITMQ_DEFAULT_USER', 'wish_swap'),
-                                  os.getenv('RABBITMQ_DEFAULT_PASS', 'wish_swap')),
-            heartbeat=7200,
-            blocked_connection_timeout=7200
-        ))
-        channel = connection.channel()
-        channel.queue_declare(
-                queue=self.network,
-                durable=True,
-                auto_delete=False,
-                exclusive=False
-        )
+        connection = rabbitmq.get_connection()
+        channel = rabbitmq.get_channel(connection, self.network)
         channel.basic_consume(
             queue=self.network,
             on_message_callback=self.callback

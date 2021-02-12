@@ -1,5 +1,7 @@
 from django.db import models
 from encrypted_fields import fields
+from web3 import Web3, HTTPProvider
+from wish_swap.settings import NETWORKS, GAS_LIMIT
 
 
 class Dex(models.Model):
@@ -11,15 +13,31 @@ class Dex(models.Model):
 
 class Token(models.Model):
     dex = models.ForeignKey('tokens.Dex', on_delete=models.CASCADE, related_name='tokens')
-    token_address = models.CharField(max_length=100)
-    token_abi = models.JSONField(null=True, default=None)
+    token_address = models.CharField(max_length=100, default='', blank=True)
+    token_abi = models.JSONField(blank=True, null=True, default=None)
     swap_address = models.CharField(max_length=100)
-    swap_owner = models.CharField(max_length=100, default='')
-    swap_abi = models.JSONField(null=True, default=None)
-    swap_secret = fields.EncryptedTextField(default='')  # private key for Ethereum-like, mnemonic for Binance-Chain
+    swap_owner = models.CharField(max_length=100, default='', blank=True)
+    swap_abi = models.JSONField(blank=True, null=True, default=None)
+    swap_secret = fields.EncryptedTextField(default='', blank=True)  # private key for Ethereum-like, mnemonic for Binance-Chain
     fee_address = models.CharField(max_length=100)
     fee = models.IntegerField()
     decimals = models.IntegerField()
     symbol = models.CharField(max_length=50)
     network = models.CharField(max_length=100)
     is_original = models.BooleanField(default=False)
+
+    def execute_swap_contract_function(self, func_name, *args):
+        network = NETWORKS[self.network]
+        w3 = Web3(HTTPProvider(network['node']))
+        tx_params = {
+            'nonce': w3.eth.getTransactionCount(self.swap_owner, 'pending'),
+            'gasPrice': w3.eth.gasPrice,
+            'gas': GAS_LIMIT,
+        }
+        contract = w3.eth.contract(address=self.swap_address, abi=self.swap_abi)
+        func = getattr(contract.functions, func_name)(*args)
+        initial_tx = func.buildTransaction(tx_params)
+        signed_tx = w3.eth.account.signTransaction(initial_tx, self.swap_secret)
+        tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
+        tx_hex = tx_hash.hex()
+        return tx_hex
