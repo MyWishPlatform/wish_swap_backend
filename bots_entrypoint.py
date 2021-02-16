@@ -23,8 +23,96 @@ class Receiver(threading.Thread):
         super().__init__()
         self.network = network
         self.bot = telebot.TeleBot(bot_token)
+        
+    def checking_both(self):
+        if self.network == 'Ethereum-bot':
+            w3 = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['node']))
+            eth_address = Dex.objects.get(name='Wish')['Ethereum'].swap_owner
+            eth_balance = w3.eth.getBalance(eth_address)
+            print(f'{self.network} balance = {eth_balance}')
+            chain_flag = False
+            balance_flag = False
+            while True:
+                # CHECK CHAIN
+                f_eth = open('scanner/settings/Ethereum', 'r')
+                data_eth = f_eth.read()
+                print(f'{self.network}: block from file <{data_eth}>')
+                eth_block = w3.eth.blockNumber
+                if abs(eth_block - int(data_eth)) > 50 and chain_flag == False:
+                    chain_flag = True
+                    msg = self.bot.send_message(GROUP_ID, f'{self.network}: scanner crashed')
+                if abs(eth_block - int(data_eth)) <= 50 and chain_flag == True:
+                    chain_flag = False
+                    self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive', reply_to_message_id=msg.message_id)
+                # CHECK BALANCE
+                if eth_balance != w3.eth.getBalance(eth_address):
+                    if eth_balance < w3.eth.getBalance(eth_address):
+                        self.bot.send_message(GROUP_ID, f'{self.network}: balance replenished')
+                        eth_balance = w3.eth.getBalance(eth_address)
+                    else:
+                        eth_balance = w3.eth.getBalance(eth_address)
+                if w3.eth.getBalance(eth_address) < NETWORKS['Ethereum']['warning_level'] and balance_flag == False:
+                    msg_eth = self.bot.send_message(GROUP_ID, f"{self.network}: WARNING! Balance is less then {NETWORKS['Ethereum']['warning_level']}")
+                    balance_flag = True
+                if w3.eth.getBalance(eth_address) > NETWORKS['Ethereum']['warning_level'] and balance_flag == True:
+                    self.bot.send_message(GROUP_ID, f'{self.network}: Balance is ok', reply_to_message_id=msg_eth.message_id)
+                    balance_flag = False
+                sleep(TIMEOUT)
+        elif self.network == 'Binance-Smart-Chain-bot':
+            w3 = Web3(Web3.HTTPProvider(NETWORKS['Binance-Smart-Chain']['node']))
+            bsc_address = Dex.objects.get(name='Wish')['Binance-Smart-Chain'].swap_owner
+            bsc_balance = w3.eth.getBalance(bsc_address)
+            print(f'{self.network} balance = {bsc_balance}')
+            chain_flag = False
+            balance_flag = False
+            while True:
+                # CHECK CHAIN
+                f_bsc = open('scanner/settings/Binance-Smart-Chain', 'r')
+                data_bsc = f_bsc.read()
+                bsc_block = w3.eth.blockNumber
+                if abs(int(data_bsc) - bsc_block) > 50 and chain_flag == False:
+                    chain_flag = True
+                    msg = self.bot.send_message(GROUP_ID, f'{self.network}: scanner crashed')
+                if abs(int(data_bsc) - bsc_block) <= 50 and chain_flag == True:
+                    chain_flag = False
+                    self.bot.send_message(GROUP_ID, f'{self.network}: scanner is alive', reply_to_message_id=msg.message_id)
+                # CHECK BALANCE
+                if bsc_balance != w3.eth.getBalance(bsc_address):
+                    if bsc_balance < w3.eth.getBalance(bsc_address):
+                        self.bot.send_message(GROUP_ID, f'{self.network}: balance replenished')
+                        bsc_balance = w3.eth.getBalance(bsc_address)
+                    else:
+                        bsc_balance = w3.eth.getBalance(bsc_address)
+                if w3.eth.getBalance(bsc_address) < NETWORKS['Binance-Smart-Chain']['warning_level'] and balance_flag == False:
+                    bsc_msg = self.bot.send_message(GROUP_ID, f"{self.network}: WARNING! Balance is less then {NETWORKS['Binance-Smart-Chain']['warning_level']}")
+                    balance_flag = True
+                if w3.eth.getBalance(bsc_address) > NETWORKS['Binance-Smart-Chain']['warning_level'] and balance_flag == True:
+                    self.bot.send_message(GROUP_ID, f'{self.network}: Balance is ok', reply_to_message_id=bsc_msg.message_id)
+                    balance_flag = False
+                sleep(TIMEOUT)
+        elif self.network == 'Binance-Chain-bot':
+            bin_address = Dex.objects.get(name='Wish')['Binance-Chain'].swap_address
+            bin_balance = get_binance_balance(bin_address)
+            if bin_balance != None:
+                bin_balance = bin_balance/NETWORKS['Binance-Chain']['decimals']
+            flag_bin = False
+            while True:
+                # CHECK BALANCE
+                if bin_balance != get_binance_balance(bin_address):
+                    if bin_balance < get_binance_balance(bin_address):
+                        self.bot.send_message(GROUP_ID, f'{self.network}: balance replenished')
+                        bin_balance = get_binance_balance(bin_address)
+                    else:
+                        bin_balance = get_binance_balance(bin_address)
+                if get_binance_balance(bin_address) < NETWORKS['Binance']['wraning_level'] and flag_bin == False:
+                    bin_msg = self.bot.send_message(GROUP_ID, f"{self.network}: WARNING! Balance is less then {NETWORKS['Binance-Chain']['warning_level']}")
+                    flag_bin = True
+                if get_binance_balance(bin_address) > NETWORKS['Binance']['wraning_level'] and flag_bin == True:
+                    self.bot.send_message(GROUP_ID, f'{self.network}: Balance is ok', reply_to_message_id=bin_msg.message_id)
+                    flag_bin = False
+                sleep(TIMEOUT)
 
-    def check_chains(self):
+    '''def check_chains(self):
         if self.network == 'Ethereum-bot':
             w3 = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['bot']['node']))
             while True:
@@ -118,7 +206,7 @@ class Receiver(threading.Thread):
             if self.network == 'Binance-Chain-bot' and get_binance_balance(bin_address) > NETWORKS['Binance-Chain']['warning_level'] and flag_bin == True:
                 self.bot.send_message(GROUP_ID, f"{self.network}: Balance is ok", reply_to_message_id=msg_bin.message_id)
                 flag_bin = False
-            sleep(BOT_TIMEOUT)
+            sleep(BOT_TIMEOUT)'''
 
 
     def start_polling(self):
@@ -152,8 +240,9 @@ class Receiver(threading.Thread):
         )
         print(f'{self.network}: queue was started', flush=True)
         threading.Thread(target=self.start_polling).start()
-        threading.Thread(target=self.check_chains).start()
-        threading.Thread(target=self.check_balances).start()
+        #threading.Thread(target=self.check_chains).start()
+        #threading.Thread(target=self.check_balances).start()
+        threading.Thread(target=self.checking_both).start()
         #self.bot.send_message(GROUP_ID, f'{self.network}: queue was started')
         channel.start_consuming()
 
