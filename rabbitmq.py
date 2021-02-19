@@ -10,8 +10,8 @@ def get_connection():
         os.getenv('RABBITMQ_DEFAULT_VHOST', 'wish_swap'),
         pika.PlainCredentials(os.getenv('RABBITMQ_DEFAULT_USER', 'wish_swap'),
                               os.getenv('RABBITMQ_DEFAULT_PASS', 'wish_swap')),
-         heartbeat=7200,
-         blocked_connection_timeout=7200,
+        heartbeat=7200,
+        blocked_connection_timeout=7200,
     ))
 
 
