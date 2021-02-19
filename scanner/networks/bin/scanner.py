@@ -26,14 +26,14 @@ class BinScanner(ScannerPolling):
                 swap_address = token.swap_address
                 block=self.network.get_block(token, swap_address, int(time.time()*1000-604800000))
                 self.process_block(block)
-                #time.sleep(2)
+                time.sleep(2)
             while True:
                 for token in tokens:
                     swap_address = token.swap_address
                     block = self.network.get_block(token, swap_address, int(time.time() * 1000 - 604800000))
                     self.process_block(block)
-                    #time.sleep(2)
-                #time.sleep(10)
+                    time.sleep(2)
+                time.sleep(20)
                 #disabled confirms
                 '''transfers = session.query(Transfer).filter(getattr(Transfer, 'status').in_(status)).filter(getattr(Transfer, 'network').in_(network_types)).all()
                 print(f'len:{len(transfers)}')

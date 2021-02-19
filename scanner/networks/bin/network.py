@@ -21,9 +21,8 @@ from binance_chain.node_rpc.http import HttpRpcClient
 
 #Setting Binance-Chain params, testnet_env for testnet
 client = HttpApiClient(request_params={"verify": False, "timeout": 60})
-client = HttpApiClient()
-testnet_env = BinanceEnvironment.get_testnet_env()
-client = HttpApiClient(env=testnet_env, request_params={"verify": False, "timeout": 60})
+#testnet_env = BinanceEnvironment.get_testnet_env()
+#client = HttpApiClient(env=testnet_env, request_params={"verify": False, "timeout": 60})
 peers = client.get_node_peers()
 listen_addr = peers[0]['listen_addr']
 rpc_client = HttpRpcClient(listen_addr)
@@ -68,7 +67,7 @@ class BinNetwork(WrapperNetwork):
                               tx_asset=token.symbol, offset=offset, start_time=s_time, limit=1000)
             tx_count = client_transactions_append['total']
             client_transactions += client_transactions_append['tx']
-            #time.sleep(1)
+            time.sleep(1)
             #emergency escape from "getting more transactions" loop
             i += 1
             if i > 100:
