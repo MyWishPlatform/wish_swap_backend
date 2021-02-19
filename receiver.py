@@ -16,44 +16,44 @@ import rabbitmq
 
 
 class Receiver(threading.Thread):
-    def __init__(self, network):
+    def __init__(self, queue):
         super().__init__()
-        self.network = network
+        self.queue = queue
 
     def run(self):
         connection = rabbitmq.get_connection()
-        channel = rabbitmq.get_channel(connection, self.network)
+        channel = rabbitmq.get_channel(connection, self.queue)
         channel.basic_consume(
-            queue=self.network,
+            queue=self.queue,
             on_message_callback=self.callback
         )
-        print(f'{self.network}: queue was started', flush=True)
+        print(f'{self.queue}: queue was started', flush=True)
         channel.start_consuming()
 
     def payment(self, message):
-        print(f'{self.network}: payment message has been received\n', flush=True)
-        parse_payment(message, self.network)
+        print(f'{self.queue}: payment message has been received\n', flush=True)
+        parse_payment(message, self.queue)
 
     '''
     def transfer(self, message):
-        print(f'{self.network}: transfer message has been received\n', flush=True)
+        print(f'{self.queue}: transfer message has been received\n', flush=True)
         transfer = Transfer.objects.get(pk=message['transferId'])
         if transfer.status == 'SUCCESS':
-            print(f'{self.network}: transfer has already been confirmed\n', flush=True)
+            print(f'{self.queue}: transfer has already been confirmed\n', flush=True)
             return
         if message['success']:
             transfer = Transfer.objects.get(pk=message['transferId'])
             transfer.status = 'SUCCESS'
-            print(f'{self.network}: transfer confirmed successfully\n', flush=True)
+            print(f'{self.queue}: transfer confirmed successfully\n', flush=True)
         else:
             transfer.status = 'FAIL'
-            print(f'{self.network}: transfer was not completed, confirmation fail\n', flush=True)
+            print(f'{self.queue}: transfer was not completed, confirmation fail\n', flush=True)
         transfer.save()
     '''
 
     def execute_transfer(self, message):
-        print(f'{self.network}: execute transfer message has been received\n', flush=True)
-        parse_execute_transfer_message(message, self.network)
+        print(f'{self.queue}: execute transfer message has been received\n', flush=True)
+        parse_execute_transfer_message(message, self.queue)
 
     def callback(self, ch, method, properties, body):
         # print('RECEIVER: received', method, properties, body, flush=True)
@@ -68,7 +68,7 @@ class Receiver(threading.Thread):
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def unknown_handler(self, message):
-        print(f'{self.network}: unknown message has been received\n', message, flush=True)
+        print(f'{self.queue}: unknown message has been received\n', message, flush=True)
 
 
 for network in NETWORKS.keys():
