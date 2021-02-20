@@ -11,6 +11,7 @@ from scanner.blockchain_common.wrapper_output import WrapperOutput
 from scanner.blockchain_common.wrapper_transaction import WrapperTransaction
 from scanner.eventscanner.queue.pika_handler import send_to_backend
 from binance_chain.exceptions import BinanceChainAPIException
+from wish_swap.settings import NETWORKS
 
 from binance_chain.http import HttpApiClient
 from binance_chain.http import PeerType
@@ -20,9 +21,11 @@ from binance_chain.node_rpc.http import HttpRpcClient
 
 
 #Setting Binance-Chain params, testnet_env for testnet
-client = HttpApiClient(request_params={"verify": False, "timeout": 60})
-#testnet_env = BinanceEnvironment.get_testnet_env()
-#client = HttpApiClient(env=testnet_env, request_params={"verify": False, "timeout": 60})
+if NETWORKS['Binance-Chain']['scanner']['is_testnet']:
+    testnet_env = BinanceEnvironment.get_testnet_env()
+    client = HttpApiClient(env=testnet_env, request_params={"verify": False, "timeout": 60})
+else:
+    client = HttpApiClient(request_params={"verify": False, "timeout": 60})
 peers = client.get_node_peers()
 listen_addr = peers[0]['listen_addr']
 rpc_client = HttpRpcClient(listen_addr)
