@@ -23,7 +23,6 @@ def parse_execute_transfer_message(message, queue):
             transfer.save()
             print(f'{queue}: high gas price ({gas_price} Gwei > {gas_price_limit} Gwei), '
                   f'postpone transfer \n{transfer}\n', flush=True)
-            transfer.send_to_queue('bot')
             return
 
     transfer.execute()
