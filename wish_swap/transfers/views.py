@@ -68,32 +68,32 @@ def swap_history_view(request, dex):
         return Response({'detail': 'no such dex exists in db'}, 404)
 
     tokens = Token.objects.filter(dex=dex)
-    payments = Payment.objects.filter(token_id_in=[token.id for token in tokens])
+    payments = Payment.objects.filter(token__in=tokens)
 
-    result = {}
+    result = []
     for payment in payments:
-        result += {'tx_hash': payment.tx_hash}
+        payment_dict = {
+            'tx_hash': payment.tx_hash,
+            'network': payment.token.network,
+            'symbol': payment.token.symbol,
+            'amount': payment.amount / (10 ** payment.token.decimals),
+            'status': payment.validation_status,
+        }
+        try:
+            transfer = Transfer.objects.get(payment=payment)
+        except Transfer.DoesNotExist:
+            result.append({'payment': payment_dict})
+            continue
+        transfer_dict = {
+            'network': transfer.token.network,
+            'symbol': transfer.token.symbol,
+            'amount': transfer.amount / (10 ** transfer.token.decimals),
+            'fee_amount': transfer.fee_amount / (10 ** transfer.token.decimals),
+            'status': transfer.status
+        }
+        if transfer.status in ('PENDING', 'SUCCESS'):
+            transfer_dict['tx_hash'] = transfer.tx_hash
+
+        result.append({'payment': payment_dict, 'transfer': transfer_dict})
 
     return Response(result)
-
-
-'''
-class TransferView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get transfer info by payment hash\n"
-                              "Transfer statuses: `SUCCESS`, `HIGH GAS PRICE`, "
-                              "`FAIL` or `DECLINED` (of fee is more then token amount)",
-        manual_parameters=[
-            openapi.Parameter('payment_hash', openapi.IN_PATH, type=openapi.TYPE_STRING),
-        ],
-        responses={200: TransferSerializer(), 404: payment_not_found_response},
-    )
-    def get(self, request, payment_hash):
-        try:
-            payment = Payment.objects.get(tx_hash=payment_hash)
-        except Payment.DoesNotExist:
-            return Response({'detail': 'no such payment exists in db'}, 404)
-        transfer = Transfer.objects.get(payment=payment)
-        serializer = TransferSerializer(transfer)
-        return Response(serializer.data, status=200)
-'''
