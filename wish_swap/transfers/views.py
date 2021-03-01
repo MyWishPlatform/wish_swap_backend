@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from wish_swap.payments.models import Payment
 from wish_swap.transfers.models import Transfer
+from wish_swap.tokens.models import Dex, Token
 '''
 from wish_swap.transfers.serializers import TransferSerializer
 from wish_swap.transfers.models import Transfer
@@ -57,6 +58,23 @@ def swap_status_view(request, payment_hash):
     elif status == 'FAIL':
         return Response({'status': 'FAIL'}, status=200)
     return Response({'status': status, 'transfer_hash': transfer.tx_hash}, status=200)
+
+
+@api_view(http_method_names=['GET'])
+def swap_history_view(request, dex):
+    try:
+        dex = Dex.objects.get(name=dex)
+    except Dex.DoesNotExist:
+        return Response({'detail': 'no such dex exists in db'}, 404)
+
+    tokens = Token.objects.filter(dex=dex)
+    payments = Payment.objects.filter(token_id_in=[token.id for token in tokens])
+
+    result = {}
+    for payment in payments:
+        result += {'tx_hash': payment.tx_hash}
+
+    return Response(result)
 
 
 '''
