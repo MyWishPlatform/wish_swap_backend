@@ -85,7 +85,10 @@ class Transfer(models.Model):
                 self.status = 'FAIL'
             self.save()
 
-    def send_to_queue(self, queue):  # queue is 'transfers' / 'bot'
+    def send_to_transfers_queue(self):
         message = {'transferId': self.id, 'status': 'COMMITTED'}
-        type = 'transfer' if queue == 'bot' else 'execute_transfer'
-        rabbitmq.publish_message(f'{self.network}-{queue}', type, message)
+        rabbitmq.publish_message(f'{self.token.network}-{self.token.symbol}-transfers', 'execute_transfer', message)
+
+    def send_to_bot_queue(self):
+        message = {'transferId': self.id, 'status': 'COMMITTED'}
+        rabbitmq.publish_message(f'{self.network}-bot', 'transfer', message)

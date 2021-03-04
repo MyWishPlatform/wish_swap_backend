@@ -10,5 +10,5 @@ def push_transfers():
         return
     print(f'PUSHING TRANSFERS: start pushing...', flush=True)
     for transfer in transfers:
-        transfer.send_to_queue('transfers')
+        transfer.send_to_transfers_queue()
     print(f'PUSHING TRANSFERS: pushing completed', flush=True)

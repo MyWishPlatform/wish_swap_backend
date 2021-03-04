@@ -12,6 +12,7 @@ from wish_swap.settings import NETWORKS
 from wish_swap.payments.api import parse_payment
 from wish_swap.transfers.models import Transfer
 from wish_swap.transfers.api import parse_execute_transfer_message
+from wish_swap.tokens.models import Token
 import rabbitmq
 
 
@@ -71,8 +72,10 @@ class Receiver(threading.Thread):
         print(f'{self.queue}: unknown message has been received\n', message, flush=True)
 
 
+for token in Token.objects.all():
+    receiver = Receiver(f'{token.network}-{token.symbol}-transfers')
+    receiver.start()
+
 for network in NETWORKS.keys():
     receiver = Receiver(network)
-    receiver.start()
-    receiver = Receiver(network + '-transfers')
     receiver.start()

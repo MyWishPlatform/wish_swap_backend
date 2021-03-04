@@ -70,7 +70,7 @@ def parse_payment(message, queue):
         payment.send_to_queue('bot')
         if transfer:
             print(f'{queue}: payment validation success, send transfer to queue \n{payment}\n', flush=True)
-            transfer.send_to_queue('transfers')
+            transfer.send_to_transfers_queue()
         else:
             print(f'{queue}: payment validation failed, abort transfer \n{payment}\n', flush=True)
     else:
