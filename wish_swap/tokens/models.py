@@ -31,7 +31,7 @@ class Token(models.Model):
         if self.network in ('Ethereum', 'Binance-Smart-Chain'):
             num = self.swap_contract_read_function_value('numOfThisBlockchain')
             raw_fee = self.swap_contract_read_function_value('feeAmountOfBlockchain', num)
-            return raw_fee // 10 ** self.decimals
+            return raw_fee // (10 ** self.decimals)
         else:
             return self._fee
 
