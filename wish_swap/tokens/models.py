@@ -20,11 +20,25 @@ class Token(models.Model):
     swap_abi = models.JSONField(blank=True, null=True, default=None)
     swap_secret = fields.EncryptedTextField(default='', blank=True)  # private key for Ethereum-like, mnemonic for Binance-Chain
     fee_address = models.CharField(max_length=100)
-    fee = models.IntegerField()
+    _fee = models.IntegerField(null=True, default=True)
     decimals = models.IntegerField()
     symbol = models.CharField(max_length=50)
     network = models.CharField(max_length=100)
     is_original = models.BooleanField(default=False)
+
+    @property
+    def fee(self):
+        if self.network in ('Ethereum', 'Binance-Smart-Chain'):
+            num = self.swap_contract_read_function_value('numOfThisBlockChain')
+            raw_fee = self.swap_contract_read_function_value('feeAmountOfBlockсhain', num)
+            return raw_fee // 10 ** self.decimals
+        else:
+            return self._fee
+
+    def swap_contract_read_function_value(self, func_name, *args):
+        w3 = Web3(HTTPProvider(NETWORKS[self.network]['node']))
+        contract = w3.eth.contract(address=self.swap_address, abi=self.swap_abi)
+        return getattr(contract.functions, func_name)(*args).call()
 
     def execute_swap_contract_function(self, func_name, *args):
         network = NETWORKS[self.network]
