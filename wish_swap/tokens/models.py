@@ -29,7 +29,7 @@ class Token(models.Model):
     @property
     def fee(self):
         if self.network in ('Ethereum', 'Binance-Smart-Chain'):
-            num = self.swap_contract_read_function_value('numOfThisBlockChain')
+            num = self.swap_contract_read_function_value('numOfThisBlockchain')
             raw_fee = self.swap_contract_read_function_value('feeAmountOfBlockсhain', num)
             return raw_fee // 10 ** self.decimals
         else:
