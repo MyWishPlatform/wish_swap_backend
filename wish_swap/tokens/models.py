@@ -39,7 +39,7 @@ class Token(models.Model):
             fee = self.contract_read_function_value('swap', 'feeAmountOfBlockchain', num)
             return fee
         elif self.network == 'Binance-Chain':
-            return self._fee
+            return int(self._fee)
         else:
             raise TokenMethodException('Invalid network')
 
