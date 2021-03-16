@@ -18,6 +18,11 @@ class TokenSerializer(serializers.ModelSerializer):
             'swap_abi',
         )
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['fee'] /= 10 ** instance.decimals
+        return data
+
 
 class DexSerializer(serializers.ModelSerializer):
     tokens = TokenSerializer(many=True)
