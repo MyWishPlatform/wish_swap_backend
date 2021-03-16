@@ -70,6 +70,6 @@ def get_balance(address, symbol):
     balances = response.json()['balances']
     for balance in balances:
         if balance['symbol'] == symbol:
-            return balance['free']
+            return float(balance['free'])
 
     return None
