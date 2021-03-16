@@ -19,15 +19,21 @@ def parse_execute_transfer_message(message, queue):
         gas_price = gas_info.price
         gas_price_limit = gas_info.price_limit
         if gas_price > gas_price_limit:
-            transfer.status = 'HIGH GAS PRICE'
-            transfer.save()
+
             print(f'{queue}: high gas price ({gas_price} Gwei > {gas_price_limit} Gwei), '
                   f'postpone transfer \n{transfer}\n', flush=True)
-            transfer.send_to_bot_queue()
+            transfer.status = 'HIGH GAS PRICE'
+            if not transfer.was_postpone_bot_message_sent:
+                transfer.send_to_bot_queue()
+                transfer.was_postpone_bot_message_sent = True
+            transfer.save()
             return
 
     if transfer.token.swap_contract_token_balance < transfer.amount:
         transfer.status = 'SMALL TOKEN BALANCE'
+        if not transfer.was_postpone_bot_message_sent:
+            transfer.send_to_bot_queue()
+            transfer.was_postpone_bot_message_sent = True
         transfer.save()
         return
 
@@ -40,7 +46,6 @@ def parse_execute_transfer_message(message, queue):
     else:
         transfer.update_status()
         transfer.save()
-        transfer.send_to_bot_queue()
         while transfer.status == 'PENDING':
             print(f'{queue}: pending transfer \n{transfer}\n', flush=True)
             print(f'{queue}: waiting {TX_STATUS_CHECK_TIMEOUT} seconds before next status check...\n', flush=True)

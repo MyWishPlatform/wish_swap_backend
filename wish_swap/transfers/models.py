@@ -21,6 +21,8 @@ class Transfer(models.Model):
     status = models.CharField(max_length=50, default='WAITING FOR TRANSFER')
     network = models.CharField(max_length=100)
 
+    was_postpone_bot_message_sent = models.BooleanField(default=False)
+
     def __str__(self):
         symbol = self.token.symbol
         return (f'\taddress: {self.address}\n'
