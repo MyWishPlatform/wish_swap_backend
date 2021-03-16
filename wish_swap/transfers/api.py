@@ -8,7 +8,7 @@ def parse_execute_transfer_message(message, queue):
     transfer = Transfer.objects.get(id=message['transferId'])
     print(f'{queue}: received transfer \n{transfer}\n', flush=True)
 
-    if transfer.status not in ('WAITING FOR TRANSFER', 'HIGH GAS PRICE'):
+    if transfer.status not in ('WAITING FOR TRANSFER', 'HIGH GAS PRICE', 'SMALL TOKEN BALANCE'):
         print(f'{queue}: there was already an attempt for transfer \n{transfer}\n', flush=True)
         return
 
@@ -25,6 +25,11 @@ def parse_execute_transfer_message(message, queue):
                   f'postpone transfer \n{transfer}\n', flush=True)
             transfer.send_to_bot_queue()
             return
+
+    if transfer.token.swap_contract_token_balance < transfer.amount:
+        transfer.status = 'SMALL TOKEN BALANCE'
+        transfer.save()
+        return
 
     transfer.execute()
     transfer.save()

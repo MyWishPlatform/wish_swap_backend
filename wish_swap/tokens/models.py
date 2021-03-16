@@ -2,6 +2,7 @@ from django.db import models
 from encrypted_fields import fields
 from web3 import Web3, HTTPProvider
 from wish_swap.settings import NETWORKS, GAS_LIMIT
+from wish_swap.transfers.binance_chain_api import get_balance
 
 
 class Dex(models.Model):
@@ -10,6 +11,10 @@ class Dex(models.Model):
 
     def __getitem__(self, network):
         return Token.objects.get(dex=self, network=network)
+
+
+class TokenMethodException(Exception):
+    pass
 
 
 class Token(models.Model):
@@ -30,15 +35,24 @@ class Token(models.Model):
     @property
     def fee(self):
         if self.network in ('Ethereum', 'Binance-Smart-Chain'):
-            num = self.swap_contract_read_function_value('numOfThisBlockchain')
-            raw_fee = self.swap_contract_read_function_value('feeAmountOfBlockchain', num)
+            num = self.contract_read_function_value('swap', 'numOfThisBlockchain')
+            raw_fee = self.contract_read_function_value('swap', 'feeAmountOfBlockchain', num)
             return raw_fee // (10 ** self.decimals)
         else:
             return self._fee
 
-    def swap_contract_read_function_value(self, func_name, *args):
+    def contract_read_function_value(self, type, func_name, *args):
         w3 = Web3(HTTPProvider(NETWORKS[self.network]['node']))
-        contract = w3.eth.contract(address=self.swap_address, abi=self.swap_abi)
+        if type == 'token':
+            address = self.swap_address
+            abi = self.swap_abi
+        elif type == 'swap':
+            address = self.token_address
+            abi = self.token_abi
+        else:
+            raise TokenMethodException('Invalid contract type')
+
+        contract = w3.eth.contract(address=address, abi=abi)
         return getattr(contract.functions, func_name)(*args).call()
 
     def execute_swap_contract_function(self, func_name, *args):
@@ -56,3 +70,14 @@ class Token(models.Model):
         tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
         tx_hex = tx_hash.hex()
         return tx_hex
+
+    @property
+    def swap_contract_token_balance(self):
+        if self.network in ('Ethereum', 'Binance-Smart-Chain'):
+            return self.contract_read_function_value('token', 'balanceOf', self.swap_address)
+        elif self.network == 'Binance-Chain':
+            return get_balance(self.swap_address, self.symbol)
+        else:
+            raise TokenMethodException('Invalid network')
+
+
