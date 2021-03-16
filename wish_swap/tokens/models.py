@@ -38,15 +38,17 @@ class Token(models.Model):
             num = self.contract_read_function_value('swap', 'numOfThisBlockchain')
             raw_fee = self.contract_read_function_value('swap', 'feeAmountOfBlockchain', num)
             return raw_fee // (10 ** self.decimals)
-        else:
+        elif self.network == 'Binance-Chain':
             return self._fee
+        else:
+            raise TokenMethodException('Invalid network')
 
-    def contract_read_function_value(self, type, func_name, *args):
+    def contract_read_function_value(self, contract_type, func_name, *args):
         w3 = Web3(HTTPProvider(NETWORKS[self.network]['node']))
-        if type == 'token':
+        if contract_type == 'token':
             address = self.token_address
             abi = self.token_abi
-        elif type == 'swap':
+        elif contract_type == 'swap':
             address = self.swap_address
             abi = self.swap_abi
         else:
