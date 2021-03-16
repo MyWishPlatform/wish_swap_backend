@@ -250,7 +250,7 @@ class Receiver(threading.Thread):
         paym = Payment.objects.get(id=message['paymentId'])
         from_network = paym.token.network
         #print(f'{self.network}: payment message has been received\n', flush=True)
-        message_string = f'Payment message\namount: {paym.amount}\nnetwork: {from_network} - {self.network}\ntx hash: {paym.tx_hash}'
+        message_string = f'Payment message\namount: {paym.amount}\nnetwork: {from_network} - {self.network.split("-bot")[0]}\ntx hash: {paym.tx_hash}'
         #mess_string = f'Payment message\ntx hash: {paym.tx_hash}\namount: {paym.amount}\nnetwork: {from_network}\ntransfer address: {paym.transfer_address}\n' \
         #              f'transfer network number: {paym.transfer_network_number}\nvalidation status: {paym.validation_status}'
         msg = self.bot.send_message(GROUP_ID, f'{message_string}')
