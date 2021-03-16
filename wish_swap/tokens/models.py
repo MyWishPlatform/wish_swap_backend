@@ -44,11 +44,12 @@ class Token(models.Model):
     def contract_read_function_value(self, type, func_name, *args):
         w3 = Web3(HTTPProvider(NETWORKS[self.network]['node']))
         if type == 'token':
-            address = self.swap_address
-            abi = self.swap_abi
-        elif type == 'swap':
             address = self.token_address
             abi = self.token_abi
+        elif type == 'swap':
+            address = self.swap_address
+            abi = self.swap_abi
+
         else:
             raise TokenMethodException('Invalid contract type')
 
