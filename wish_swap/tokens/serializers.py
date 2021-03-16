@@ -24,7 +24,7 @@ class DexSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Dex
-        fields = ('name', 'tokens',)
+        fields = ('name', 'tokens', 'min_swap_amount')
 
     def create(self, validated_data):
         tokens_data = validated_data.pop('tokens')

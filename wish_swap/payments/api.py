@@ -23,9 +23,11 @@ def create_transfer_if_payment_valid(payment):
         payment.save()
         return None
 
-    fee_amount = to_token.fee * (10 ** to_token.decimals)
+    decimals = (10 ** to_token.decimals)
+    fee_amount = to_token.fee * decimals
+    min_swap_amount = to_token.dex.min_swap_amount * decimals
 
-    if payment.amount - fee_amount <= 0:
+    if payment.amount <= fee_amount or payment.amount < min_swap_amount:
         payment.validation_status = 'SMALL AMOUNT'
         payment.save()
         return None

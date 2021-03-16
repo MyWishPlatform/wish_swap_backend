@@ -6,6 +6,7 @@ from wish_swap.settings import NETWORKS, GAS_LIMIT
 
 class Dex(models.Model):
     name = models.CharField(max_length=100, primary_key=True)
+    min_swap_amount = models.IntegerField()
 
     def __getitem__(self, network):
         return Token.objects.get(dex=self, network=network)
