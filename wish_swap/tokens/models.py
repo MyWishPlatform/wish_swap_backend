@@ -49,7 +49,6 @@ class Token(models.Model):
         elif type == 'swap':
             address = self.swap_address
             abi = self.swap_abi
-
         else:
             raise TokenMethodException('Invalid contract type')
 
@@ -80,5 +79,3 @@ class Token(models.Model):
             return get_balance(self.swap_address, self.symbol)
         else:
             raise TokenMethodException('Invalid network')
-
-
