@@ -20,7 +20,7 @@ class TokenSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data['fee'] /= 10 ** instance.decimals
+        data['fee'] //= 10 ** instance.decimals
         return data
 
 
