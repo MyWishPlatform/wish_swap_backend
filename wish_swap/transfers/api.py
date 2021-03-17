@@ -1,6 +1,6 @@
 from wish_swap.transfers.models import Transfer
 from wish_swap.networks.models import GasInfo
-from wish_swap.settings import NETWORKS, TX_STATUS_CHECK_TIMEOUT
+from wish_swap.settings import NETWORKS, TX_STATUS_CHECK_TIMEOUT, GAS_LIMIT
 import time
 
 
@@ -14,8 +14,13 @@ def parse_execute_transfer_message(message, queue):
 
     network = transfer.network
 
-    if not transfer.check_token_balance():
-        transfer.save()
+    if transfer.token.swap_contract_token_balance < transfer.amount:
+        status = 'SMALL TOKEN BALANCE'
+        if transfer.status != status:
+            transfer.status = status
+            transfer.save()
+            transfer.send_to_bot_queue()
+
         print(f'{queue}: small token balance for transfer \n{transfer}\n', flush=True)
         return
 
@@ -23,20 +28,35 @@ def parse_execute_transfer_message(message, queue):
         gas_info = GasInfo.objects.get(network=network)
         gas_price = gas_info.price * (10 ** 9)
         gas_price_limit = gas_info.price_limit * (10 ** 9)
-        if not transfer.check_gas_price(gas_price, gas_price_limit):
+        if gas_price > gas_price_limit:
+            status = 'HIGH GAS PRICE'
+            if transfer.status != status:
+                transfer.status = status
+                transfer.save()
+                transfer.send_to_bot_queue()
             print(f'{queue}: high gas price ({gas_price} Gwei > {gas_price_limit} Gwei), '
                   f'postpone transfer \n{transfer}\n', flush=True)
-            transfer.save()
             return
-        if not transfer.check_balance(gas_price=gas_price):
-            transfer.save()
+
+        if transfer.token.swap_owner_balance < gas_price * GAS_LIMIT:
+            status = 'SMALL BALANCE'
+            if transfer.status != status:
+                transfer.status = status
+                transfer.save()
+                transfer.send_to_bot_queue()
             print(f'{queue}: small balance for transfer \n{transfer}\n', flush=True)
             return
         transfer.execute(gas_price=gas_price)
         transfer.save()
     elif network == 'Binance-Chain':
-        if not transfer.check_balance():
-            transfer.save()
+        if transfer.token.swap_owner_balance < 60000:  # multi-send price for 2 addresses
+            status = 'SMALL BALANCE'
+            if transfer.status != status:
+                transfer.status = status
+                transfer.save()
+                transfer.send_to_bot_queue()
+
+            print(f'{queue}: small balance for transfer \n{transfer}\n', flush=True)
             return
 
         transfer.execute()

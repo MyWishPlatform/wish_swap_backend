@@ -1,13 +1,9 @@
 from django.db import models
 from web3 import Web3, HTTPProvider
 from web3.exceptions import TransactionNotFound
-from wish_swap.settings import NETWORKS, GAS_LIMIT
+from wish_swap.settings import NETWORKS
 from wish_swap.transfers.binance_chain_api import BinanceChainInterface, get_tx_info
 import rabbitmq
-
-
-class TransferMethodException(Exception):
-    pass
 
 
 class Transfer(models.Model):
@@ -24,10 +20,6 @@ class Transfer(models.Model):
     tx_error = models.TextField(default='')
     status = models.CharField(max_length=50, default='WAITING FOR TRANSFER')
     network = models.CharField(max_length=100)
-
-    small_balance_flag = models.BooleanField(default=False)
-    small_token_balance_flag = models.BooleanField(default=False)
-    high_gas_price_flag = models.BooleanField(default=False)
 
     def __str__(self):
         symbol = self.token.symbol
@@ -101,47 +93,3 @@ class Transfer(models.Model):
     def send_to_bot_queue(self):
         message = {'transferId': self.id, 'status': 'COMMITTED'}
         rabbitmq.publish_message(f'{self.network}-bot', 'transfer', message)
-
-    def check_token_balance(self):
-        if self.token.swap_contract_token_balance < self.amount:
-            self.status = 'SMALL TOKEN BALANCE'
-            if not self.small_token_balance_flag:
-                self.send_to_bot_queue()
-                self.small_token_balance_flag = True
-        else:
-            self.small_token_balance_flag = False
-
-        self.save()
-        return not self.small_token_balance_flag
-
-    def check_balance(self, gas_price=None):
-        balance = self.token.swap_owner_balance
-        if self.network in ('Ethereum', 'Binance-Smart-Chain'):
-            small_condition = balance < gas_price * GAS_LIMIT
-        elif self.network == 'Binance-Chain':
-            small_condition = balance < 60000  # multi-send price for 2 addresses
-        else:
-            raise TransferMethodException('Invalid network')
-
-        if small_condition:
-            self.status = 'SMALL BALANCE'
-            if not self.small_balance_flag:
-                self.send_to_bot_queue()
-                self.small_balance_flag = True
-        else:
-            self.small_balance_flag = False
-
-        self.save()
-        return not self.small_balance_flag
-
-    def check_gas_price(self, gas_price, gas_price_limit):
-        if gas_price > gas_price_limit:
-            self.status = 'HIGH GAS PRICE'
-            if not self.high_gas_price_flag:
-                self.send_to_bot_queue()
-                self.high_gas_price_flag = True
-        else:
-            self.high_gas_price_flag = False
-
-        self.save()
-        return not self.high_gas_price_flag
