@@ -57,12 +57,12 @@ class Token(models.Model):
         contract = w3.eth.contract(address=address, abi=abi)
         return getattr(contract.functions, func_name)(*args).call()
 
-    def execute_swap_contract_function(self, func_name, *args):
+    def execute_swap_contract_function(self, func_name, gas_price=None, *args):
         network = NETWORKS[self.network]
         w3 = Web3(HTTPProvider(network['node']))
         tx_params = {
             'nonce': w3.eth.getTransactionCount(self.swap_owner, 'pending'),
-            'gasPrice': w3.eth.gasPrice,
+            'gasPrice': gas_price or w3.eth.gasPrice,
             'gas': GAS_LIMIT,
         }
         contract = w3.eth.contract(address=self.swap_address, abi=self.swap_abi)
@@ -79,5 +79,17 @@ class Token(models.Model):
             return self.contract_read_function_value('token', 'balanceOf', self.swap_address)
         elif self.network == 'Binance-Chain':
             return int(get_balance(self.swap_address, self.symbol) * (10 ** self.decimals))
+        else:
+            raise TokenMethodException('Invalid network')
+
+    @property
+    def swap_address_balance(self):
+        if self.network in ('Ethereum', 'Binance-Smart-Chain'):
+            network = NETWORKS[self.network]
+            w3 = Web3(HTTPProvider(network['node']))
+            checksum_address = Web3.toChecksumAddress(self.swap_address)
+            return w3.eth.get_balance(checksum_address)
+        elif self.network == 'Binance-Chain':
+            return int(get_balance(self.swap_address, 'BNB') * (10 ** 8))
         else:
             raise TokenMethodException('Invalid network')

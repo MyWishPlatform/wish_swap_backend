@@ -52,7 +52,7 @@ def swap_status_view(request, payment_hash):
 
     transfer = Transfer.objects.get(payment=payment)
     status = transfer.status
-    if status in ('HIGH GAS PRICE', 'WAITING FOR CONFIRM', 'SMALL TOKEN BALANCE'):
+    if status in ('HIGH GAS PRICE', 'WAITING FOR CONFIRM', 'SMALL TOKEN BALANCE', 'SMALL BALANCE'):
         return Response({'status': 'IN PROCESS'}, status=200)
     elif status == 'FAIL':
         return Response({'status': 'FAIL'}, status=200)

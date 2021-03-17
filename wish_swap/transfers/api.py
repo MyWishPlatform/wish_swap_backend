@@ -8,37 +8,42 @@ def parse_execute_transfer_message(message, queue):
     transfer = Transfer.objects.get(id=message['transferId'])
     print(f'{queue}: received transfer \n{transfer}\n', flush=True)
 
-    if transfer.status not in ('WAITING FOR TRANSFER', 'HIGH GAS PRICE', 'SMALL TOKEN BALANCE'):
+    if transfer.status not in ('WAITING FOR TRANSFER', 'HIGH GAS PRICE', 'SMALL TOKEN BALANCE', 'SMALL BALANCE'):
         print(f'{queue}: there was already an attempt for transfer \n{transfer}\n', flush=True)
         return
 
     network = transfer.network
 
+    if not transfer.check_token_balance():
+        transfer.save()
+        print(f'{queue}: small token balance for transfer \n{transfer}\n', flush=True)
+        return
+
     if network in ('Ethereum', 'Binance-Smart-Chain'):
         gas_info = GasInfo.objects.get(network=network)
         gas_price = gas_info.price
         gas_price_limit = gas_info.price_limit
-        if gas_price > gas_price_limit:
-
+        if not transfer.check_gas_price(gas_price, gas_price_limit):
             print(f'{queue}: high gas price ({gas_price} Gwei > {gas_price_limit} Gwei), '
                   f'postpone transfer \n{transfer}\n', flush=True)
-            transfer.status = 'HIGH GAS PRICE'
-            if not transfer.was_postpone_bot_message_sent:
-                transfer.send_to_bot_queue()
-                transfer.was_postpone_bot_message_sent = True
+            transfer.save()
+            return
+        if not transfer.check_balance(gas_price=gas_price):
+            transfer.save()
+            print(f'{queue}: small balance for transfer \n{transfer}\n', flush=True)
+            return
+        transfer.execute(gas_price=gas_price)
+        transfer.save()
+    elif network == 'Binance-Chain':
+        if not transfer.check_balance():
             transfer.save()
             return
 
-    if transfer.token.swap_contract_token_balance < transfer.amount:
-        transfer.status = 'SMALL TOKEN BALANCE'
-        if not transfer.was_postpone_bot_message_sent:
-            transfer.send_to_bot_queue()
-            transfer.was_postpone_bot_message_sent = True
+        transfer.execute()
         transfer.save()
-        return
-
-    transfer.execute()
-    transfer.save()
+    else:
+        print(f'{queue}: unknown network for transfer \n{transfer}\n', flush=True)
+        raise Exception('Unknown network')
 
     if transfer.status == 'FAIL':
         print(f'{queue}: failed transfer \n{transfer}\n', flush=True)

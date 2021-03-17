@@ -4,7 +4,7 @@ from celery import shared_task
 
 @shared_task
 def push_transfers():
-    transfers = Transfer.objects.filter(status__in=('HIGH GAS PRICE', 'SMALL TOKEN BALANCE'))
+    transfers = Transfer.objects.filter(status__in=('HIGH GAS PRICE', 'SMALL TOKEN BALANCE', 'SMALL BALANCE'))
     if not transfers.count():
         print(f'PUSHING TRANSFERS: no transfers to push', flush=True)
         return
