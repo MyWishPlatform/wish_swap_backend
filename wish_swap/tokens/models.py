@@ -25,12 +25,21 @@ class Token(models.Model):
     swap_owner = models.CharField(max_length=100, default='', blank=True)
     swap_abi = models.JSONField(blank=True, null=True, default=None)
     swap_secret = fields.EncryptedTextField(default='', blank=True)  # private key for Ethereum-like, mnemonic for Binance-Chain
-    fee_address = models.CharField(max_length=100)
+    _fee_address = models.CharField(max_length=100)
     _fee = models.DecimalField(max_digits=100, decimal_places=0, null=True, default=None)
     decimals = models.IntegerField()
     symbol = models.CharField(max_length=50)
     network = models.CharField(max_length=100)
     is_original = models.BooleanField(default=False)
+
+    @property
+    def fee_address(self):
+        if self.network in ('Ethereum', 'Binance-Smart-Chain'):
+            return self.contract_read_function_value('swap', 'feeAddress')
+        elif self.network == 'Binance-Chain':
+            return int(self._fee_address)
+        else:
+            raise TokenMethodException('Invalid network')
 
     @property
     def fee(self):
