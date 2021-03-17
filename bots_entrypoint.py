@@ -250,7 +250,7 @@ class Receiver(threading.Thread):
         paym = Payment.objects.get(id=message['paymentId'])
         from_network = paym.token.network
         #print(f'{self.network}: payment message has been received\n', flush=True)
-        message_string = f'Payment message\namount: {paym.amount}\nnetwork: {from_network} - {self.network.split("-bot")[0]}\ntx hash: {paym.tx_hash}'
+        message_string = f'Payment message\namount: {paym.amount / (10 ** paym.token.decimals)} {paym.token.symbol}\nnetwork: {from_network} - {self.network.split("-bot")[0]}\ntx hash: {paym.tx_hash}'
         #mess_string = f'Payment message\ntx hash: {paym.tx_hash}\namount: {paym.amount}\nnetwork: {from_network}\ntransfer address: {paym.transfer_address}\n' \
         #              f'transfer network number: {paym.transfer_network_number}\nvalidation status: {paym.validation_status}'
         msg = self.bot.send_message(GROUP_ID, f'{message_string}')
@@ -262,10 +262,10 @@ class Receiver(threading.Thread):
         #print(f'{self.network}: execute transfer message has been received\n', flush=True)
         trans = Transfer.objects.get(id=message['transferId'])
         if trans.status != 'PENDING':
-            mess_string = f'Transfer message\namount: {trans.amount}\ntx hash: {trans.tx_hash}\ntx error: {trans.tx_error}'
+            mess_string = f'Transfer message\namount: {trans.amount / (10 ** trans.token.decimals)} {trans.token.symbol}\ntx hash: {trans.tx_hash}\ntx error: {trans.tx_error}'
             mess_id = trans.payment.bot_message_id
             self.bot.send_message(GROUP_ID, f'Transfer message\n{mess_string}', reply_to_message_id=mess_id)
-            parse_execute_transfer_message(message, self.network)
+            #parse_execute_transfer_message(message, self.network)
 
     def callback(self, ch, method, properties, body):
         # print('RECEIVER: received', method, properties, body, flush=True)
