@@ -21,6 +21,7 @@ services:
       - rabbitmq
     restart: unless-stopped
     volumes:
+      - .:/app
       - ./static:/app/static
       - ./wish_swap/payments:/app/wish_swap/payments
       - ./wish_swap/networks:/app/wish_swap/networks
@@ -38,6 +39,7 @@ services:
       - db
       - rabbitmq
     volumes:
+      - .:/app
       - ./scanner/settings:/app/scanner/settings
     restart: unless-stopped
     networks:
@@ -56,6 +58,8 @@ services:
     depends_on:
       - db
       - rabbitmq
+    volumes:
+      - .:/app
     restart: unless-stopped
     networks:
       wish-swap-net:
@@ -67,6 +71,8 @@ services:
     depends_on:
       - db
       - rabbitmq
+    volumes:
+      - .:/app
     restart: unless-stopped
     networks:
       wish-swap-net:
@@ -79,6 +85,7 @@ services:
       - db
       - rabbitmq
     volumes:
+      - .:/app
       - ./scanner/settings:/app/scanner/settings
     restart: unless-stopped
     networks:
