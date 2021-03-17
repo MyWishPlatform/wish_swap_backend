@@ -115,7 +115,7 @@ class Transfer(models.Model):
         return not self.small_token_balance_flag
 
     def check_balance(self, gas_price=None):
-        balance = self.token.swap_address_balance
+        balance = self.token.swap_owner_balance
         if self.network in ('Ethereum', 'Binance-Smart-Chain'):
             small_condition = balance < gas_price * GAS_LIMIT
         elif self.network == 'Binance-Chain':

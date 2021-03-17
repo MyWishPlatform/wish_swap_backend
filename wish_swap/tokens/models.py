@@ -83,11 +83,11 @@ class Token(models.Model):
             raise TokenMethodException('Invalid network')
 
     @property
-    def swap_address_balance(self):
+    def swap_owner_balance(self):
         if self.network in ('Ethereum', 'Binance-Smart-Chain'):
             network = NETWORKS[self.network]
             w3 = Web3(HTTPProvider(network['node']))
-            checksum_address = Web3.toChecksumAddress(self.swap_address)
+            checksum_address = Web3.toChecksumAddress(self.swap_owner)
             return w3.eth.get_balance(checksum_address)
         elif self.network == 'Binance-Chain':
             return int(get_balance(self.swap_address, 'BNB') * (10 ** 8))
