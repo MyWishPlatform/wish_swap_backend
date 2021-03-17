@@ -264,7 +264,7 @@ class Receiver(threading.Thread):
         if trans.status != 'PENDING':
             mess_string = f'Transfer message\namount: {trans.amount / (10 ** trans.token.decimals)} {trans.token.symbol}\ntx hash: {trans.tx_hash}\ntx error: {trans.tx_error}'
             mess_id = trans.payment.bot_message_id
-            self.bot.send_message(GROUP_ID, f'Transfer message\n{mess_string}', reply_to_message_id=mess_id)
+            self.bot.send_message(GROUP_ID, f'{mess_string}', reply_to_message_id=mess_id)
             #parse_execute_transfer_message(message, self.network)
 
     def callback(self, ch, method, properties, body):
