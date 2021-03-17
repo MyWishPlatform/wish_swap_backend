@@ -6,10 +6,7 @@ from wish_swap.settings import NETWORKS
 
 class BinanceChainInterface:
     def __init__(self):
-        try:
-            self.network = NETWORKS['Binance-Chain']
-        except KeyError:
-            self.network = None
+        self.network = NETWORKS['Binance-Chain']
 
     def add_key(self, key, password, mnemonic):
         command_list = [self.network['cli'], 'keys', 'add', key, '--recover']
