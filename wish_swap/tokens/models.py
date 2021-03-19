@@ -25,8 +25,8 @@ class Token(models.Model):
     swap_owner = models.CharField(max_length=100, default='', blank=True)
     swap_abi = models.JSONField(blank=True, null=True, default=None)
     swap_secret = fields.EncryptedTextField(default='', blank=True)  # private key for Ethereum-like, mnemonic for Binance-Chain
-    _fee_address = models.CharField(max_length=100)
-    _fee = models.DecimalField(max_digits=100, decimal_places=0, null=True, default=None)
+    _fee_address = models.CharField(max_length=100, default='', blank=True)
+    _fee = models.DecimalField(max_digits=100, decimal_places=0, blank=True, null=True, default=None)
     decimals = models.IntegerField()
     symbol = models.CharField(max_length=50)
     network = models.CharField(max_length=100)
