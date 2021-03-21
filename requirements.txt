@@ -61,6 +61,7 @@ pyTelegramBotAPI==3.7.6
 pytz==2020.5
 regex==2020.11.13
 requests==2.25.1
+requests-http-signature==0.2.0
 rlp==2.0.1
 ruamel.yaml==0.16.12
 ruamel.yaml.clib==0.2.2

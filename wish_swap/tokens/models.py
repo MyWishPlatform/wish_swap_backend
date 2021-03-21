@@ -1,7 +1,9 @@
+import requests
 from django.db import models
 from encrypted_fields import fields
+from requests_http_signature import HTTPSignatureAuth
 from web3 import Web3, HTTPProvider
-from wish_swap.settings import NETWORKS, GAS_LIMIT
+from wish_swap.settings import NETWORKS, GAS_LIMIT, REMOTE_SIGN_URL, SECRET_KEY, SECRET_KEY_ID
 from wish_swap.transfers.binance_chain_api import get_balance
 
 
@@ -31,6 +33,7 @@ class Token(models.Model):
     symbol = models.CharField(max_length=50)
     network = models.CharField(max_length=100)
     is_original = models.BooleanField(default=False)
+    remote_sign = models.BooleanField(default=False)
 
     @property
     def fee_address(self):
@@ -77,7 +80,13 @@ class Token(models.Model):
         contract = w3.eth.contract(address=self.swap_address, abi=self.swap_abi)
         func = getattr(contract.functions, func_name)(*args)
         initial_tx = func.buildTransaction(tx_params)
-        signed_tx = w3.eth.account.signTransaction(initial_tx, self.swap_secret)
+        if self.remote_sign:
+            auth = HTTPSignatureAuth(key=SECRET_KEY, key_id=SECRET_KEY_ID)
+            initial_tx['from'] = self.swap_owner
+            response = requests.post(REMOTE_SIGN_URL, auth=auth, json=initial_tx)
+            signed_tx = response.json()['signed_tx']
+        else:
+            signed_tx = w3.eth.account.sign_transaction(initial_tx, self.swap_secret)
         tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
         tx_hex = tx_hash.hex()
         return tx_hex
