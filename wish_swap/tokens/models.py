@@ -86,8 +86,8 @@ class Token(models.Model):
             response = requests.post(REMOTE_SIGN_URL, auth=auth, json=initial_tx)
             signed_tx = response.json()['signed_tx']
         else:
-            signed_tx = w3.eth.account.sign_transaction(initial_tx, self.swap_secret)
-        tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
+            signed_tx = w3.eth.account.sign_transaction(initial_tx, self.swap_secret).rawTransaction
+        tx_hash = w3.eth.sendRawTransaction(signed_tx)
         tx_hex = tx_hash.hex()
         return tx_hex
 
