@@ -16,7 +16,7 @@ from wish_swap.settings_local import GROUP_ID
 from wish_swap.settings_local import BOT_TIMEOUT
 from wish_swap.transfers.models import Transfer
 from wish_swap.payments.models import Payment
-from wish_swap.tokens.models import Dex
+from wish_swap.tokens.models import Dex, Token
 
 class Receiver(threading.Thread):
     def __init__(self, dex_name, bot_token):
