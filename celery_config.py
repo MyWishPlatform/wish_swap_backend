@@ -11,7 +11,7 @@ app = Celery('centurion_crowdsale', broker='amqp://rabbit:rabbit@rabbitmq:5672/r
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.conf.update(result_expires=3600, enable_utc=True, timezone=CELERY_TIMEZONE)
 
-app.conf.beat_schedule['pushing_transfers'] = {
-    'task': 'celery_tasks.push_transfers',
+app.conf.beat_schedule['pushing_transfers_and_payments'] = {
+    'task': 'celery_tasks.push_transfers_and_payments',
     'schedule': crontab(minute=f'*/{PUSHING_TRANSFERS_TASK_TIMEOUT_MINUTES}'),
 }
