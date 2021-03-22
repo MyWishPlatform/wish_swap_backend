@@ -1,83 +1,86 @@
+import time
+import requests
 from wish_swap.transfers.models import Transfer
 from wish_swap.networks.models import GasInfo
 from wish_swap.settings import NETWORKS, TX_STATUS_CHECK_TIMEOUT, GAS_LIMIT
-import time
+
+
+class TransferValidationException(Exception):
+    def __init__(self, status, message=''):
+        self.status = status
+        self.message = message
+        super().__init__(self.message)
 
 
 def parse_execute_transfer_message(message, queue):
     transfer = Transfer.objects.get(id=message['transferId'])
     print(f'{queue}: received transfer \n{transfer}\n', flush=True)
-
-    if transfer.status not in ('WAITING FOR TRANSFER', 'HIGH GAS PRICE', 'SMALL TOKEN BALANCE', 'SMALL BALANCE'):
-        print(f'{queue}: there was already an attempt for transfer \n{transfer}\n', flush=True)
-        return
-
-    network = transfer.network
-
-    if transfer.token.swap_contract_token_balance < transfer.amount:
-        status = 'SMALL TOKEN BALANCE'
-        if transfer.status != status:
-            transfer.status = status
+    try:
+        execute_transfer(transfer, queue)
+    except requests.exceptions.RequestException as e:
+        print(f'{queue}: provider is down ({repr(e)}) while executing transfer \n{transfer}\n', flush=True)
+        if transfer.status != Transfer.Status.PROVIDER_IS_DOWN:
+            transfer.status = Transfer.Status.PROVIDER_IS_DOWN
+            transfer.save()
+            transfer.send_to_bot_queue()
+    except TransferValidationException as e:
+        if transfer.status != e.status:
+            transfer.status = e.status
             transfer.save()
             transfer.send_to_bot_queue()
 
-        print(f'{queue}: small token balance for transfer \n{transfer}\n', flush=True)
+
+def execute_transfer(transfer, queue):
+    if transfer.status not in (Transfer.Status.CREATED,
+                               Transfer.Status.PROVIDER_IS_DOWN,
+                               Transfer.Status.HIGH_GAS_PRICE,
+                               Transfer.Status.INSUFFICIENT_BALANCE,
+                               Transfer.Status.INSUFFICIENT_TOKEN_BALANCE):
+        print(f'{queue}: there was already an attempt for transfer \n{transfer}\n', flush=True)
         return
+
+    if transfer.token.swap_contract_token_balance < transfer.amount:
+        print(f'{queue}: insufficient token balance for transfer \n{transfer}\n', flush=True)
+        raise TransferValidationException(Transfer.Status.INSUFFICIENT_TOKEN_BALANCE)
+
+    network = transfer.network
 
     if network in ('Ethereum', 'Binance-Smart-Chain'):
         gas_info = GasInfo.objects.get(network=network)
         gas_price = gas_info.price * (10 ** 9)
         gas_price_limit = gas_info.price_limit * (10 ** 9)
         if gas_price > gas_price_limit:
-            status = 'HIGH GAS PRICE'
-            if transfer.status != status:
-                transfer.status = status
-                transfer.save()
-                transfer.send_to_bot_queue()
             print(f'{queue}: high gas price ({gas_price} Gwei > {gas_price_limit} Gwei), '
                   f'postpone transfer \n{transfer}\n', flush=True)
-            return
+            raise TransferValidationException(Transfer.Status.HIGH_GAS_PRICE)
 
         if transfer.token.swap_owner_balance < gas_price * GAS_LIMIT:
-            status = 'SMALL BALANCE'
-            if transfer.status != status:
-                transfer.status = status
-                transfer.save()
-                transfer.send_to_bot_queue()
             print(f'{queue}: small balance for transfer \n{transfer}\n', flush=True)
-            return
+            raise TransferValidationException(Transfer.Status.INSUFFICIENT_BALANCE)
+
         transfer.execute(gas_price=gas_price)
         transfer.save()
     elif network == 'Binance-Chain':
         if transfer.token.swap_owner_balance < 60000:  # multi-send price for 2 addresses
-            status = 'SMALL BALANCE'
-            if transfer.status != status:
-                transfer.status = status
-                transfer.save()
-                transfer.send_to_bot_queue()
-
             print(f'{queue}: small balance for transfer \n{transfer}\n', flush=True)
-            return
+            raise TransferValidationException(Transfer.Status.INSUFFICIENT_BALANCE)
 
         transfer.execute()
         transfer.save()
-    else:
-        print(f'{queue}: unknown network for transfer \n{transfer}\n', flush=True)
-        raise Exception('Unknown network')
 
-    if transfer.status == 'FAIL':
+    if transfer.status == Transfer.Status.FAIL:
         print(f'{queue}: failed transfer \n{transfer}\n', flush=True)
         transfer.send_to_bot_queue()
     else:
         transfer.update_status()
         transfer.save()
-        while transfer.status == 'PENDING':
+        while transfer.status == Transfer.Status.PENDING:
             print(f'{queue}: pending transfer \n{transfer}\n', flush=True)
             print(f'{queue}: waiting {TX_STATUS_CHECK_TIMEOUT} seconds before next status check...\n', flush=True)
             time.sleep(TX_STATUS_CHECK_TIMEOUT)
             transfer.update_status()
             transfer.save()
-        if transfer.status == 'SUCCESS':
+        if transfer.status == Transfer.Status.SUCCESS:
             print(f'{queue}: successful transfer \n{transfer}\n', flush=True)
         else:
             print(f'{queue}: failed transfer after pending \n{transfer}\n', flush=True)
