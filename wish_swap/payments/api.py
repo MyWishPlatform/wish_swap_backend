@@ -59,11 +59,11 @@ def parse_validate_payment_message(queue, message):
         print(f'{queue}: payment validation success, send transfer to queue \n{transfer}\n', flush=True)
         transfer.send_to_transfers_queue()
     except PaymentValidationException as e:
-        print(f'{queue}: payment validation failed \n{payment}\n', flush=True)
         if payment.validation_status != e.status:
             payment.status = e.status
             payment.save()
             payment.send_to_bot_queue()
+        print(f'{queue}: payment validation failed \n{payment}\n', flush=True)
 
 
 def parse_payment(message, queue):
