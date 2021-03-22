@@ -49,11 +49,11 @@ class Receiver(threading.Thread):
                         balances[i] = balance
                     else:
                         balances[i] = balance
-                if balance < tokens[i].network['warning_level'] and flags[i] == False:
-                    msg = self.bot.send_message(GROUP_ID, f"{self.dex_name} {tokens[i].network}: WARNING! Balance is less then {tokens[i].nework['warning_level']}")
+                if balance < NETWORKS[tokens[i].network]['warning_level'] and flags[i] == False:
+                    msg = self.bot.send_message(GROUP_ID, f"{self.dex_name} {tokens[i].network}: WARNING! Balance is less then {NETWORKS[tokens[i].network]['warning_level']}")
                     reply_flags[self.dex_name+'-'+tokens[i].network] = msg.message_id
                     flags[i] = True
-                if balance > tokens[i].network['warning_level'] and flags[i] == True:
+                if balance > NETWORKS[tokens[i].network]['warning_level'] and flags[i] == True:
                     self.bot.send_message(GROUP_ID, f"{self.dex_name} {tokens[i].network}: Balance is ok", reply_to_message_id=reply_flags[self.dex_name+'-'+tokens[i].network])
                     flags[i] = False
                 sleep(BOT_TIMEOUT)
