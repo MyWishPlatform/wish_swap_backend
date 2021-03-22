@@ -14,7 +14,7 @@ def push_transfers_and_payments():
         transfer.send_to_transfers_queue()
     print(f'{transfers.count()} transfers pushed', flush=True)
 
-    payments = Payment.objects.filter(validation_status=Payment.Validation.PROVIDER_IS_DOWN)
+    payments = Payment.objects.filter(validation=Payment.Validation.PROVIDER_IS_UNREACHABLE)
 
     for payment in payments:
         payment.send_to_validation_queue()

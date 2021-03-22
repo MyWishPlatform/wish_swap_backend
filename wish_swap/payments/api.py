@@ -64,7 +64,7 @@ def create_transfer_if_payment_valid(payment):
     try:
         fee = to_token.fee
     except requests.exceptions.RequestException:
-        raise ValidationException(Payment.Validation.PROVIDER_IS_DOWN)
+        raise ValidationException(Payment.Validation.PROVIDER_IS_UNREACHABLE)
 
     if payment.amount <= fee or payment.amount < min_swap_amount:
         raise ValidationException(Payment.Validation.INSUFFICIENT_AMOUNT)

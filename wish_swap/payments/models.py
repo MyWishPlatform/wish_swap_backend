@@ -8,7 +8,7 @@ class Payment(models.Model):
         INVALID_NETWORK_ID = 'invalid network id'
         INVALID_NETWORK = 'invalid network'
         INSUFFICIENT_AMOUNT = 'insufficient amount'
-        PROVIDER_IS_DOWN = 'provider is down'
+        PROVIDER_IS_UNREACHABLE = 'provider is unreachable'
         SUCCESS = 'success'
 
     token = models.ForeignKey('tokens.Token', on_delete=models.CASCADE)

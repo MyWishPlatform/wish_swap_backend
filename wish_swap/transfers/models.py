@@ -7,7 +7,6 @@ from wish_swap.settings import NETWORKS
 from wish_swap.transfers.binance_chain_api import BinanceChainInterface, get_tx_info
 
 
-
 class Transfer(models.Model):
     class Status(models.TextChoices):
         CREATED = 'created'
