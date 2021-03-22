@@ -26,10 +26,8 @@ class Receiver(threading.Thread):
         self.bot = telebot.TeleBot(bot_token)
 
     def check_balances_two(self):
-        dexes = Dex.objects.all()
-        tokens = []
-        for dex in dexes:
-            tokens.append(Token.objects.get(dex=dex))
+        dex = Dex.objects.get(name=self.dex_name)
+        tokens = Token.objects.filter(dex=dex)
         balances = []
         reply_flags = {}
         for token in tokens:
