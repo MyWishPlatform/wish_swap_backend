@@ -16,6 +16,6 @@ def push_transfers_and_payments():
 
     payments = Payment.objects.filter(validation_status=Payment.ValidationStatus.PROVIDER_IS_DOWN)
 
-    for payments in payments:
-        payments.send_to_validation_queue()
+    for payment in payments:
+        payment.send_to_validation_queue()
     print(f'{payments.count()} payments pushed', flush=True)
