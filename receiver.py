@@ -9,7 +9,7 @@ import django
 django.setup()
 
 from wish_swap.settings import NETWORKS
-from wish_swap.payments.api import parse_payment
+from wish_swap.payments.api import parse_payment, parse_validate_payment_message
 from wish_swap.transfers.models import Transfer
 from wish_swap.transfers.api import parse_execute_transfer_message
 from wish_swap.tokens.models import Token
@@ -30,6 +30,10 @@ class Receiver(threading.Thread):
         )
         print(f'{self.queue}: queue was started', flush=True)
         channel.start_consuming()
+
+    def validate_payment(self, message):
+        print(f'{self.queue}: validate payment message has been received\n', flush=True)
+        parse_validate_payment_message(self.queue, message)
 
     def payment(self, message):
         print(f'{self.queue}: payment message has been received\n', flush=True)
@@ -79,3 +83,6 @@ for token in Token.objects.all():
 for network in NETWORKS.keys():
     receiver = Receiver(network)
     receiver.start()
+
+receiver = Receiver('payments-validation')
+receiver.start()

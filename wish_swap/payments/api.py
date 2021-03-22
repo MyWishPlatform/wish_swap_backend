@@ -8,30 +8,35 @@ import requests
 import json
 
 
-def create_transfer_if_payment_valid(payment):
+class PaymentValidationException(Exception):
+    def __init__(self, status, message=''):
+        self.status = status
+        self.message = message
+        super().__init__(self.message)
+
+
+def create_transfer_from_payment(payment):
     try:
         to_network = NETWORKS_BY_NUMBER[payment.transfer_network_number]
     except KeyError:
-        payment.validation_status = 'NON EXISTENT NETWORK'
-        payment.save()
-        return None
+        raise PaymentValidationException(Payment.ValidationStatus.INVALID_NETWORK_ID)
 
     try:
         to_token = payment.token.dex[to_network]
     except Token.DoesNotExist:
-        payment.validation_status = 'NON EXISTENT TOKEN'
-        payment.save()
-        return None
+        raise PaymentValidationException(Payment.ValidationStatus.INVALID_NETWORK)
 
     min_swap_amount = to_token.dex.min_swap_amount * (10 ** to_token.decimals)
-    fee = to_token.fee
+
+    try:
+        fee = to_token.fee
+    except requests.exceptions.RequestException:
+        raise PaymentValidationException(Payment.ValidationStatus.PROVIDER_IS_DOWN)
 
     if payment.amount <= fee or payment.amount < min_swap_amount:
-        payment.validation_status = 'SMALL AMOUNT'
-        payment.save()
-        return None
+        raise PaymentValidationException(Payment.ValidationStatus.INSUFFICIENT_AMOUNT)
 
-    payment.validation_status = 'SUCCESS'
+    payment.validation_status = Payment.ValidationStatus.SUCCESS
     payment.save()
 
     transfer = Transfer(
@@ -45,6 +50,20 @@ def create_transfer_if_payment_valid(payment):
     )
     transfer.save()
     return transfer
+
+
+def parse_validate_payment_message(queue, message):
+    payment = Payment.objects.get(pk=message['paymentId'])
+    try:
+        transfer = create_transfer_from_payment(payment)
+        print(f'{queue}: payment validation success, send transfer to queue \n{transfer}\n', flush=True)
+        transfer.send_to_transfers_queue()
+    except PaymentValidationException as e:
+        print(f'{queue}: payment validation failed \n{payment}\n', flush=True)
+        if payment.validation_status != e.status:
+            payment.status = e.status
+            payment.save()
+            payment.send_to_bot_queue()
 
 
 def parse_payment(message, queue):
@@ -65,15 +84,10 @@ def parse_payment(message, queue):
             transfer_network_number=network_number,
         )
         payment.save()
-        print(f'{queue}: payment saved \n{payment}\n', flush=True)
+        print(f'{queue}: payment saved, send to validation queue \n{payment}\n', flush=True)
 
-        transfer = create_transfer_if_payment_valid(payment)
-        payment.send_to_queue('bot')
-        if transfer:
-            print(f'{queue}: payment validation success, send transfer to queue \n{payment}\n', flush=True)
-            transfer.send_to_transfers_queue()
-        else:
-            print(f'{queue}: payment validation failed, abort transfer \n{payment}\n', flush=True)
+        payment.send_to_validation_queue()
+        payment.send_to_bot_queue()
     else:
         print(f'{queue}: tx {tx_hash} already registered\n', flush=True)
 
