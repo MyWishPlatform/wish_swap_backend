@@ -150,6 +150,6 @@ class Receiver(threading.Thread):
 
 if __name__ == '__main__':
     dexes = Dex.objects.all()
-    for dex, params in dexes:
-        receiver = Receiver(dex.name+'-bot', params['bot']['token'])
+    for dex in dexes:
+        receiver = Receiver(dex.name+'-bot', dex.bot_token)
         receiver.start()
