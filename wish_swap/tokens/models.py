@@ -10,7 +10,7 @@ from wish_swap.transfers.binance_chain_api import get_balance
 class Dex(models.Model):
     name = models.CharField(max_length=100, primary_key=True)
     min_swap_amount = models.IntegerField()
-    bot_token = models.CharField(max_length=100, primary_key=True)
+    bot_token = models.CharField(max_length=100, default='', primary_key=True)
 
     def __getitem__(self, network):
         return Token.objects.get(dex=self, network=network)
