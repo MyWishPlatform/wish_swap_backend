@@ -149,5 +149,5 @@ class Receiver(threading.Thread):
 if __name__ == '__main__':
     dexes = Dex.objects.all()
     for dex in dexes:
-        receiver = Receiver(dex.name+'-bot', dex.bot_token)
+        receiver = Receiver(dex.name, dex.bot_token)
         receiver.start()
