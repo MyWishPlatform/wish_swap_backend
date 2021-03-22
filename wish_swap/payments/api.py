@@ -60,7 +60,7 @@ def parse_validate_payment_message(queue, message):
         transfer.send_to_transfers_queue()
     except PaymentValidationException as e:
         if payment.validation_status != e.status:
-            payment.status = e.status
+            payment.validation_status = e.status
             payment.save()
             payment.send_to_bot_queue()
         print(f'{queue}: payment validation failed \n{payment}\n', flush=True)
