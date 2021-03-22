@@ -1,15 +1,9 @@
 import time
 import requests
+from wish_swap.payments.models import ValidationException
 from wish_swap.transfers.models import Transfer
 from wish_swap.networks.models import GasInfo
 from wish_swap.settings import NETWORKS, TX_STATUS_CHECK_TIMEOUT, GAS_LIMIT
-
-
-class TransferValidationException(Exception):
-    def __init__(self, status, message=''):
-        self.status = status
-        self.message = message
-        super().__init__(self.message)
 
 
 def parse_execute_transfer_message(message, queue):
@@ -19,11 +13,11 @@ def parse_execute_transfer_message(message, queue):
         execute_transfer(transfer, queue)
     except requests.exceptions.RequestException as e:
         print(f'{queue}: provider is down ({repr(e)}) while executing transfer \n{transfer}\n', flush=True)
-        if transfer.status != Transfer.Status.PROVIDER_IS_DOWN:
-            transfer.status = Transfer.Status.PROVIDER_IS_DOWN
+        if transfer.status != Transfer.Status.PROVIDER_IS_UNREACHABLE:
+            transfer.status = Transfer.Status.PROVIDER_IS_UNREACHABLE
             transfer.save()
             transfer.send_to_bot_queue()
-    except TransferValidationException as e:
+    except ValidationException as e:
         if transfer.status != e.status:
             transfer.status = e.status
             transfer.save()
@@ -32,7 +26,7 @@ def parse_execute_transfer_message(message, queue):
 
 def execute_transfer(transfer, queue):
     if transfer.status not in (Transfer.Status.CREATED,
-                               Transfer.Status.PROVIDER_IS_DOWN,
+                               Transfer.Status.PROVIDER_IS_UNREACHABLE,
                                Transfer.Status.HIGH_GAS_PRICE,
                                Transfer.Status.INSUFFICIENT_BALANCE,
                                Transfer.Status.INSUFFICIENT_TOKEN_BALANCE):
@@ -41,7 +35,7 @@ def execute_transfer(transfer, queue):
 
     if transfer.token.swap_contract_token_balance < transfer.amount:
         print(f'{queue}: insufficient token balance for transfer \n{transfer}\n', flush=True)
-        raise TransferValidationException(Transfer.Status.INSUFFICIENT_TOKEN_BALANCE)
+        raise ValidationException(Transfer.Status.INSUFFICIENT_TOKEN_BALANCE)
 
     network = transfer.network
 
@@ -52,18 +46,18 @@ def execute_transfer(transfer, queue):
         if gas_price > gas_price_limit:
             print(f'{queue}: high gas price ({gas_price} Gwei > {gas_price_limit} Gwei), '
                   f'postpone transfer \n{transfer}\n', flush=True)
-            raise TransferValidationException(Transfer.Status.HIGH_GAS_PRICE)
+            raise ValidationException(Transfer.Status.HIGH_GAS_PRICE)
 
         if transfer.token.swap_owner_balance < gas_price * GAS_LIMIT:
             print(f'{queue}: small balance for transfer \n{transfer}\n', flush=True)
-            raise TransferValidationException(Transfer.Status.INSUFFICIENT_BALANCE)
+            raise ValidationException(Transfer.Status.INSUFFICIENT_BALANCE)
 
         transfer.execute(gas_price=gas_price)
         transfer.save()
     elif network == 'Binance-Chain':
         if transfer.token.swap_owner_balance < 60000:  # multi-send price for 2 addresses
             print(f'{queue}: small balance for transfer \n{transfer}\n', flush=True)
-            raise TransferValidationException(Transfer.Status.INSUFFICIENT_BALANCE)
+            raise ValidationException(Transfer.Status.INSUFFICIENT_BALANCE)
 
         transfer.execute()
         transfer.save()

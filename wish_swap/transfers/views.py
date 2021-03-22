@@ -47,7 +47,7 @@ def swap_status_view(request, payment_hash):
     except Payment.DoesNotExist:
         return Response({'detail': 'no such payment exists in db'}, 404)
 
-    if payment.validation_status != 'SUCCESS':
+    if payment.validation != 'SUCCESS':
         return Response({'status': 'FAIL'}, status=200)
 
     transfer = Transfer.objects.get(payment=payment)

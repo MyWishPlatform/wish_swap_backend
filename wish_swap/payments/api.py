@@ -1,69 +1,11 @@
-from wish_swap.payments.models import Payment
+import requests
+import json
+from wish_swap.payments.models import Payment, ValidationException
 from wish_swap.settings import NETWORKS_BY_NUMBER
 from wish_swap.tokens.models import Token, Dex
 from wish_swap.transfers.models import Transfer
 from web3 import Web3, HTTPProvider
 from wish_swap.settings import NETWORKS
-import requests
-import json
-
-
-class PaymentValidationException(Exception):
-    def __init__(self, status, message=''):
-        self.status = status
-        self.message = message
-        super().__init__(self.message)
-
-
-def create_transfer_from_payment(payment):
-    try:
-        to_network = NETWORKS_BY_NUMBER[payment.transfer_network_number]
-    except KeyError:
-        raise PaymentValidationException(Payment.ValidationStatus.INVALID_NETWORK_ID)
-
-    try:
-        to_token = payment.token.dex[to_network]
-    except Token.DoesNotExist:
-        raise PaymentValidationException(Payment.ValidationStatus.INVALID_NETWORK)
-
-    min_swap_amount = to_token.dex.min_swap_amount * (10 ** to_token.decimals)
-
-    try:
-        fee = to_token.fee
-    except requests.exceptions.RequestException:
-        raise PaymentValidationException(Payment.ValidationStatus.PROVIDER_IS_DOWN)
-
-    if payment.amount <= fee or payment.amount < min_swap_amount:
-        raise PaymentValidationException(Payment.ValidationStatus.INSUFFICIENT_AMOUNT)
-
-    payment.validation_status = Payment.ValidationStatus.SUCCESS
-    payment.save()
-
-    transfer = Transfer(
-        payment=payment,
-        token=to_token,
-        address=payment.transfer_address,
-        amount=payment.amount - fee,
-        fee_address=to_token.fee_address,
-        fee_amount=fee,
-        network=to_token.network,
-    )
-    transfer.save()
-    return transfer
-
-
-def parse_validate_payment_message(queue, message):
-    payment = Payment.objects.get(pk=message['paymentId'])
-    try:
-        transfer = create_transfer_from_payment(payment)
-        print(f'{queue}: payment validation success, send transfer to queue \n{transfer}\n', flush=True)
-        transfer.send_to_transfers_queue()
-    except PaymentValidationException as e:
-        if payment.validation_status != e.status:
-            payment.validation_status = e.status
-            payment.save()
-            payment.send_to_bot_queue()
-        print(f'{queue}: payment validation failed \n{payment}\n', flush=True)
 
 
 def parse_payment(message, queue):
@@ -92,7 +34,58 @@ def parse_payment(message, queue):
         print(f'{queue}: tx {tx_hash} already registered\n', flush=True)
 
 
-def parse_payment_manually(tx_hash, network_name, dex_name):
+def parse_validate_payment_message(queue, message):
+    payment = Payment.objects.get(pk=message['paymentId'])
+    try:
+        transfer = create_transfer_if_payment_valid(payment)
+        print(f'{queue}: payment validation success, send transfer to queue \n{transfer}\n', flush=True)
+        transfer.send_to_transfers_queue()
+    except ValidationException as e:
+        if payment.validation != e.status:
+            payment.validation = e.status
+            payment.save()
+            payment.send_to_bot_queue()
+        print(f'{queue}: payment validation failed \n{payment}\n', flush=True)
+
+
+def create_transfer_if_payment_valid(payment):
+    try:
+        to_network = NETWORKS_BY_NUMBER[payment.transfer_network_number]
+    except KeyError:
+        raise ValidationException(Payment.Validation.INVALID_NETWORK_ID)
+
+    try:
+        to_token = payment.token.dex[to_network]
+    except Token.DoesNotExist:
+        raise ValidationException(Payment.Validation.INVALID_NETWORK)
+
+    min_swap_amount = to_token.dex.min_swap_amount * (10 ** to_token.decimals)
+
+    try:
+        fee = to_token.fee
+    except requests.exceptions.RequestException:
+        raise ValidationException(Payment.Validation.PROVIDER_IS_DOWN)
+
+    if payment.amount <= fee or payment.amount < min_swap_amount:
+        raise ValidationException(Payment.Validation.INSUFFICIENT_AMOUNT)
+
+    payment.validation = Payment.Validation.SUCCESS
+    payment.save()
+
+    transfer = Transfer(
+        payment=payment,
+        token=to_token,
+        address=payment.transfer_address,
+        amount=payment.amount - fee,
+        fee_address=to_token.fee_address,
+        fee_amount=fee,
+        network=to_token.network,
+    )
+    transfer.save()
+    return transfer
+
+
+def parse_payment_manually(tx_hash, network_name, dex_name):  # Probably deprecated!
     dex = Dex.objects.get(name=dex_name)
     token = dex[network_name]
     if network_name in ('Ethereum', 'Binance-Smart-Chain'):

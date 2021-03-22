@@ -18,7 +18,7 @@ class Transfer(models.Model):
         SUCCESS = 'success'
         FAIL = 'fail'
         VALIDATION = 'validation'
-        PROVIDER_IS_DOWN = 'provider is down'
+        PROVIDER_IS_UNREACHABLE = 'provider is unreachable'
 
     payment = models.ForeignKey('payments.Payment', on_delete=models.CASCADE)
     token = models.ForeignKey('tokens.Token', on_delete=models.CASCADE)

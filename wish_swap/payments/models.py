@@ -3,7 +3,7 @@ import rabbitmq
 
 
 class Payment(models.Model):
-    class ValidationStatus(models.TextChoices):
+    class Validation(models.TextChoices):
         WAITING_FOR = 'waiting for'
         INVALID_NETWORK_ID = 'invalid network id'
         INVALID_NETWORK = 'invalid network'
@@ -17,9 +17,9 @@ class Payment(models.Model):
     amount = models.DecimalField(max_digits=100, decimal_places=0)
     transfer_address = models.CharField(max_length=100)
     transfer_network_number = models.IntegerField()
-    validation_status = models.CharField(max_length=100,
-                                         choices=ValidationStatus.choices,
-                                         default=ValidationStatus.WAITING_FOR)
+    validation = models.CharField(max_length=100,
+                                  choices=Validation.choices,
+                                  default=Validation.WAITING_FOR)
     bot_message_id = models.IntegerField(default=0)
 
     def __str__(self):
@@ -30,7 +30,7 @@ class Payment(models.Model):
                 f'\tnetwork: {self.token.network}\n'
                 f'\ttransfer address: {self.transfer_address}\n'
                 f'\ttransfer network number: {self.transfer_network_number}\n'
-                f'\tvalidation status: {self.validation_status}')
+                f'\tvalidation: {self.validation}')
 
     def send_to_validation_queue(self):
         message = {'paymentId': self.id, 'status': 'COMMITTED'}
@@ -39,3 +39,10 @@ class Payment(models.Model):
     def send_to_bot_queue(self):
         message = {'paymentId': self.id, 'status': 'COMMITTED'}
         rabbitmq.publish_message(f'{self.token.dex.name}-bot', 'payment', message)
+
+
+class ValidationException(Exception):
+    def __init__(self, status, message=''):
+        self.status = status
+        self.message = message
+        super().__init__(self.message)

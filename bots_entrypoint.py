@@ -108,7 +108,7 @@ class Receiver(threading.Thread):
         trans = Transfer.objects.get(id=message['transferId'])
         flag = False
         #if trans.status != 'PENDING':
-        if trans.status == Transfer.Status.PROVIDER_IS_DOWN:
+        if trans.status == Transfer.Status.PROVIDER_IS_UNREACHABLE:
             mess_string = f'Transfer message\namount: {trans.amount / (10 ** trans.token.decimals)} {trans.token.symbol}\ntx hash: {trans.tx_hash}\ntx error: {trans.tx_error}\ntx status: provider is down'
             flag = True
         elif trans.status == Transfer.Status.SUCCESS:
