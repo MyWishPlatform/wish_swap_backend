@@ -33,7 +33,9 @@ class Payment(models.Model):
                 f'\tvalidation status: {self.validation_status}')
 
     def send_to_validation_queue(self):
-        rabbitmq.publish_message(f'payments-validation', 'validate_payment', {'paymentId': self.id})
+        message = {'paymentId': self.id, 'status': 'COMMITTED'}
+        rabbitmq.publish_message(f'payments-validation', message)
 
     def send_to_bot_queue(self):
-        rabbitmq.publish_message(f'{self.token.dex.name}', 'payment', {'paymentId': self.id})
+        message = {'paymentId': self.id, 'status': 'COMMITTED'}
+        rabbitmq.publish_message(f'{self.token.dex.name}-bot', message)
