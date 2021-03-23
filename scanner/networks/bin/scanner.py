@@ -52,12 +52,13 @@ class BinScanner(ScannerPolling):
                 time.sleep(20)
             print('got out of the main loop')
         except Exception as e:
-            send_to_backend('scanner_crash', 'scanner-bot', 'scanner is dead')
+            #send_to_backend('scanner_crash', 'scanner-bot', 'scanner is dead')
             try:
                 with open(os.path.join(self.base_dir, 'Binance-Chain', 'status'), 'r') as file:
                     status = file.read()
                     if status == 'alive':
                         write = True
+                        send_to_backend('scanner_crash', 'scanner-bot', 'scanner is dead')
                     else:
                         write = False
                 if write:
@@ -70,6 +71,7 @@ class BinScanner(ScannerPolling):
                 os.makedirs(filename, exist_ok=True)
                 with open(os.path.join(self.base_dir, 'Binance-Chain', 'status'), 'w') as file:
                     file.write('dead')
+                    send_to_backend('scanner_crash', 'scanner-bot', 'scanner is dead')
                 time.sleep(20)
 
 
