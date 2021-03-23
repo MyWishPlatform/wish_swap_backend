@@ -28,16 +28,19 @@ class Receiver(threading.Thread):
             #print(f'ETH: block from file <{data_eth}>')
             try:
                 eth_block = w3_eth.eth.blockNumber
+                bsc_block = w3_bsc.eth.blockNumber
+                print(f'ethereum block: {eth_block}; binance-chain-bot: {bsc_block}')
             except Exception:
                 print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
                 sleep(15)
             f_bsc = open('scanner/settings/Binance-Smart-Chain', 'r')
             data_bsc = f_bsc.read()
-            try:
+            print(f'ethereum file block: {data_eth}; BSC file block: {data_bsc}')
+            '''try:
                 bsc_block = w3_bsc.eth.blockNumber
             except Exception:
                 print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
-                sleep(15)
+                sleep(15)'''
             chain_flag_eth = False
             chain_flag_bsc = False
             if abs(eth_block - int(data_eth)) > 50 and chain_flag_eth == False:
