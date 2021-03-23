@@ -52,6 +52,7 @@ class BinScanner(ScannerPolling):
                 time.sleep(20)
             print('got out of the main loop')
         except Exception as e:
+            print(repr(e))
             #send_to_backend('scanner_crash', 'scanner-bot', 'scanner is dead')
             try:
                 with open(os.path.join(self.base_dir, 'Binance-Chain', 'status'), 'r') as file:
