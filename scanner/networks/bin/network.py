@@ -51,7 +51,7 @@ class BinNetwork(WrapperNetwork):
         print('BINANCE_MAINNET: scanning', flush=True)
         #try:
         #getting all transactions for last day
-        client_transactions = client.get_transactions(address=swap_address,
+        client_transactions = self.client.get_transactions(address=swap_address,
                               tx_asset=token.symbol, start_time=s_time, limit=1000)
         '''except:
             #mainly for testnet, because it simultaneously breaks with timeout error
@@ -66,7 +66,7 @@ class BinNetwork(WrapperNetwork):
         #getting more than 1000(max in one request) transactions if needed
         while tx_count > len(client_transactions):
             offset += 1000
-            client_transactions_append = client.get_transactions(
+            client_transactions_append = self.client.get_transactions(
                 address=swap_address,
                               tx_asset=token.symbol, offset=offset, start_time=s_time, limit=1000)
             tx_count = client_transactions_append['total']
