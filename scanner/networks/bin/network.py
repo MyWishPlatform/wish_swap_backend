@@ -33,9 +33,9 @@ class BinNetwork(WrapperNetwork):
         #Setting Binance-Chain params, testnet_env for testnet
         if NETWORKS['Binance-Chain']['scanner']['is_testnet']:
             testnet_env = BinanceEnvironment.get_testnet_env()
-            client = HttpApiClient(env=testnet_env, request_params={"verify": False, "timeout": 60})
+            self.client = HttpApiClient(env=testnet_env, request_params={"verify": False, "timeout": 60})
         else:
-            client = HttpApiClient(request_params={"verify": False, "timeout": 60})
+            self.client = HttpApiClient(request_params={"verify": False, "timeout": 60})
         peers = client.get_node_peers()
         listen_addr = peers[0]['listen_addr']
         rpc_client = HttpRpcClient(listen_addr)
