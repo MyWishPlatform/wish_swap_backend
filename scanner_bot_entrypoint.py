@@ -10,9 +10,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'wish_swap.settings')
 import django
 django.setup()
 
-from wish_swap.settings_local import NETWORKS
-from wish_swap.settings_local import GROUP_ID
-from wish_swap.settings_local import BOT_TIMEOUT
+from wish_swap.settings_local import NETWORKS, SCANNER_BOT_TOKEN, SCANNER_BOT_GROUP_ID, BOT_TIMEOUT
+
 
 class Receiver(threading.Thread):
     def __init__(self, bot_token):
@@ -42,16 +41,16 @@ class Receiver(threading.Thread):
             chain_flag_bsc = False
             if abs(eth_block - int(data_eth)) > 50 and chain_flag_eth == False:
                 chain_flag_eth = True
-                msg_eth = self.bot.send_message(GROUP_ID, 'Ethereum-bot: scanner crashed')
+                msg_eth = self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Ethereum-bot: scanner crashed')
             if abs(eth_block - int(data_eth)) <= 50 and chain_flag_eth == True:
                 chain_flag_eth = False
-                self.bot.send_message(GROUP_ID, 'Ethereum-bot: scanner is alive', reply_to_message_id=msg_eth.message_id)
+                self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Ethereum-bot: scanner is alive', reply_to_message_id=msg_eth.message_id)
             if abs(int(data_bsc) - bsc_block) > 50 and chain_flag_bsc == False:
                 chain_flag_bsc = True
-                msg_bsc = self.bot.send_message(GROUP_ID, 'Binance-Smart-Chain-bot: scanner crashed')
+                msg_bsc = self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Binance-Smart-Chain-bot: scanner crashed')
             if abs(int(data_bsc) - bsc_block) <= 50 and chain_flag_bsc == True:
                 chain_flag_bsc = False
-                self.bot.send_message(GROUP_ID, 'Binance-Smart-Chain-bot: scanner is alive', reply_to_message_id=msg_bsc.message_id)
+                self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Binance-Smart-Chain-bot: scanner is alive', reply_to_message_id=msg_bsc.message_id)
             sleep(BOT_TIMEOUT)
 
     def start_polling(self):
@@ -86,7 +85,7 @@ class Receiver(threading.Thread):
         print('Scanner-bot: queue was started', flush=True)
         threading.Thread(target=self.start_polling).start()
         threading.Thread(target=self.check_chains).start()
-        #self.bot.send_message(GROUP_ID, f'{self.network}: queue was started')
+        #self.bot.send_message(SCANNER_BOT_GROUP_ID, f'{self.network}: queue was started')
         channel.start_consuming()
 
     def callback(self, ch, method, properties, body):
@@ -103,14 +102,14 @@ class Receiver(threading.Thread):
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def scanner_crash(self, message):
-        self.bot.send_message(GROUP_ID, 'Binance-bot: scanner crashed\n')
+        self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Binance-bot: scanner crashed\n')
 
     def scanner_up(self, message):
-        self.bot.send_message(GROUP_ID, 'Binance-bot: scanner is alive\n')
+        self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Binance-bot: scanner is alive\n')
 
     def unknown_handler(self, message):
         print('Binance-bot: unknown message has been received\n', message, flush=True)
 
 if __name__ == '__main__':
-    receiver = Receiver('Scanner-bot')
+    receiver = Receiver(SCANNER_BOT_TOKEN)
     receiver.start()
