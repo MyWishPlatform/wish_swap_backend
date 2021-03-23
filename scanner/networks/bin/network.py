@@ -36,7 +36,7 @@ class BinNetwork(WrapperNetwork):
             self.client = HttpApiClient(env=testnet_env, request_params={"verify": False, "timeout": 60})
         else:
             self.client = HttpApiClient(request_params={"verify": False, "timeout": 60})
-        peers = client.get_node_peers()
+        peers = self.client.get_node_peers()
         listen_addr = peers[0]['listen_addr']
         rpc_client = HttpRpcClient(listen_addr)
         processed = []
