@@ -1,4 +1,6 @@
-import pika, sys, os
+import rabbitmq
+import sys
+import os
 import telebot
 from time import sleep
 import json
@@ -70,15 +72,7 @@ class Receiver(threading.Thread):
                 sleep(15)
 
     def run(self):
-        connection = pika.BlockingConnection(pika.ConnectionParameters(
-            'rabbitmq',
-            5672,
-            os.getenv('RABBITMQ_DEFAULT_VHOST', 'wish_swap'),
-            pika.PlainCredentials(os.getenv('RABBITMQ_DEFAULT_USER', 'wish_swap'),
-                                  os.getenv('RABBITMQ_DEFAULT_PASS', 'wish_swap')),
-            heartbeat=7200,
-            blocked_connection_timeout=7200
-        ))
+        connection = rabbitmq.get_connection()
         channel = connection.channel()
         channel.queue_declare(
             queue='scanner-bot',
