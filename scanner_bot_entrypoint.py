@@ -22,6 +22,8 @@ class Receiver(threading.Thread):
     def check_chains(self):
         w3_eth = Web3(Web3.HTTPProvider(NETWORKS['Ethereum']['node']))
         w3_bsc = Web3(Web3.HTTPProvider(NETWORKS['Binance-Smart-Chain']['node']))
+        chain_flag_eth = False
+        chain_flag_bsc = False
         while True:
             f_eth = open('scanner/settings/Ethereum', 'r')
             data_eth = f_eth.read()
@@ -41,8 +43,6 @@ class Receiver(threading.Thread):
             except Exception:
                 print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
                 sleep(15)'''
-            chain_flag_eth = False
-            chain_flag_bsc = False
             if abs(eth_block - int(data_eth)) > 50 and chain_flag_eth == False:
                 print(f'ETH BIG ABS: {abs(eth_block - int(data_eth))}')
                 chain_flag_eth = True
