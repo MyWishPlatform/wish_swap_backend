@@ -14,8 +14,9 @@ from wish_swap.settings_local import NETWORKS, SCANNER_BOT_TOKEN, SCANNER_BOT_GR
 
 
 class Receiver(threading.Thread):
-    def __init__(self, bot_token):
+    def __init__(self, binance_flag, bot_token):
         super().__init__()
+        self.binance_flag = binance_flag
         self.bot = telebot.TeleBot(bot_token)
 
     def check_chains(self):
@@ -40,15 +41,19 @@ class Receiver(threading.Thread):
             chain_flag_eth = False
             chain_flag_bsc = False
             if abs(eth_block - int(data_eth)) > 50 and chain_flag_eth == False:
+                print(f'ETH BIG ABS: {abs(eth_block - int(data_eth))}')
                 chain_flag_eth = True
                 msg_eth = self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Ethereum-bot: scanner crashed')
             if abs(eth_block - int(data_eth)) <= 50 and chain_flag_eth == True:
+                print(f'ETH SMALL ABS: {abs(eth_block - int(data_eth))}')
                 chain_flag_eth = False
                 self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Ethereum-bot: scanner is alive', reply_to_message_id=msg_eth.message_id)
             if abs(int(data_bsc) - bsc_block) > 50 and chain_flag_bsc == False:
+                print(f'BSC BIG ABS: {abs(int(data_bsc) - bsc_block)}')
                 chain_flag_bsc = True
                 msg_bsc = self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Binance-Smart-Chain-bot: scanner crashed')
             if abs(int(data_bsc) - bsc_block) <= 50 and chain_flag_bsc == True:
+                print(f'BSC SMALL ABS: {abs(int(data_bsc) - bsc_block)}')
                 chain_flag_bsc = False
                 self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Binance-Smart-Chain-bot: scanner is alive', reply_to_message_id=msg_bsc.message_id)
             sleep(BOT_TIMEOUT)
@@ -102,14 +107,18 @@ class Receiver(threading.Thread):
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def scanner_crash(self, message):
-        self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Binance-bot: scanner crashed\n')
+        if self.binance_flag == False:
+            self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Binance-bot: scanner crashed\n')
+        self.binance_flag = True
 
     def scanner_up(self, message):
-        self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Binance-bot: scanner is alive\n')
+        if self.binance_flag == True:
+            self.bot.send_message(SCANNER_BOT_GROUP_ID, 'Binance-bot: scanner is alive\n')
+        self.binance_flag = False
 
     def unknown_handler(self, message):
         print('Binance-bot: unknown message has been received\n', message, flush=True)
 
 if __name__ == '__main__':
-    receiver = Receiver(SCANNER_BOT_TOKEN)
+    receiver = Receiver(False, SCANNER_BOT_TOKEN)
     receiver.start()
