@@ -44,7 +44,7 @@ class BinScanner(ScannerPolling):
                     with open(os.path.join(self.base_dir, 'Binance-Chain', 'status'), 'r') as file:
                         status = file.read()
                         if status == 'dead':
-                            send_to_backend('scanner_up', 'Binance-Chain-bot', 'scanner ressurected')
+                            send_to_backend('scanner_up', 'scanner-bot', 'scanner ressurected')
                     with open(os.path.join(self.base_dir, 'Binance-Chain', 'status'), 'w') as file:
                         file.write('alive')
                 except FileNotFoundError:
@@ -52,7 +52,7 @@ class BinScanner(ScannerPolling):
                 time.sleep(20)
             print('got out of the main loop')
         except Exception as e:
-            send_to_backend('scanner_crash', 'Binance-Chain-bot', 'scanner is dead')
+            send_to_backend('scanner_crash', 'scanner-bot', 'scanner is dead')
             try:
                 with open(os.path.join(self.base_dir, 'Binance-Chain', 'status'), 'r') as file:
                     status = file.read()
