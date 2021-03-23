@@ -86,7 +86,19 @@ services:
       - rabbitmq
     volumes:
       - .:/app
-      - ./scanner/settings:/app/scanner/settings
+    restart: unless-stopped
+    networks:
+      wish-swap-net:
+  scanner_bot:
+    env_file: .env
+    build:
+      context: .
+      dockerfile: dockerfiles/scanner_bot.Dockerfile
+    depends_on:
+      - db
+      - rabbitmq
+    volumes:
+      - .:/app
     restart: unless-stopped
     networks:
       wish-swap-net:
