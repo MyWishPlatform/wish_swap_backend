@@ -29,7 +29,6 @@ def parse_payment(message, queue):
         print(f'{queue}: payment saved, send to validation queue \n{payment}\n', flush=True)
 
         payment.send_to_validation_queue()
-        payment.send_to_bot_queue()
     else:
         print(f'{queue}: tx {tx_hash} already registered\n', flush=True)
 
@@ -44,8 +43,9 @@ def parse_validate_payment_message(queue, message):
         if payment.validation != e.status:
             payment.validation = e.status
             payment.save()
-            payment.send_to_bot_queue()
         print(f'{queue}: payment validation failed \n{payment}\n', flush=True)
+
+    payment.send_to_bot_queue()
 
 
 def create_transfer_if_payment_valid(payment):
