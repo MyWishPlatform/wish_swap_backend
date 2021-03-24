@@ -106,32 +106,37 @@ class Receiver(threading.Thread):
         payment.save()
 
     def transfer(self, message):
-        #print(f'{self.network}: execute transfer message has been received\n', flush=True)
-        trans = Transfer.objects.get(id=message['transferId'])
+        transfer = Transfer.objects.get(id=message['transferId'])
+        amount = transfer.amount / (10 ** transfer.token.decimals)
+        symbol = transfer.token.symbol
+        network = transfer.token.network
         flag = False
-        #if trans.status != 'PENDING':
-        if trans.status == Transfer.Status.PROVIDER_IS_UNREACHABLE:
-            mess_string = f'Transfer message\namount: {trans.amount / (10 ** trans.token.decimals)} {trans.token.symbol}\ntx hash: {trans.tx_hash}\ntx error: {trans.tx_error}\ntx status: provider is down'
+        if transfer.status == Transfer.Status.PROVIDER_IS_UNREACHABLE:
+            message_str = f'transfer will be executed later due to unreachable provider in {network} network'
             flag = True
-        elif trans.status == Transfer.Status.SUCCESS:
-            mess_string = f'Transfer message\namount: {trans.amount / (10 ** trans.token.decimals)} {trans.token.symbol}\ntx hash: {trans.tx_hash}\ntx error: {trans.tx_error}\ntx status: success'
+        elif transfer.status == Transfer.Status.SUCCESS:
+            message_str = f'successfully sent {amount} {symbol} in {network} network: {transfer.tx_hash}'
             flag = True
-        elif trans.status == Transfer.Status.HIGH_GAS_PRICE:
-            mess_string = f'Transfer message\namount: {trans.amount / (10 ** trans.token.decimals)} {trans.token.symbol}\ntx hash: {trans.tx_hash}\ntx error: {trans.tx_error}\ntx status: high gas price'
+        elif transfer.status == Transfer.Status.HIGH_GAS_PRICE:
+            message_str = f'transfer will be executed later due to high gas price in {network} network'
             flag = True
-        elif trans.status == Transfer.Status.INSUFFICIENT_TOKEN_BALANCE:
-            mess_string = f'Transfer message\namount: {trans.amount / (10 ** trans.token.decimals)} {trans.token.symbol}\ntx hash: {trans.tx_hash}\ntx error: {trans.tx_error}\ntx status: insufficient token balance'
+        elif transfer.status == Transfer.Status.INSUFFICIENT_TOKEN_BALANCE:
+            token_balance = transfer.token.swap_contract_token_balance / (10 ** transfer.token.decimals)
+            message_str = f'please top up swap contract token balance to make a transfer, current is {token_balance} {symbol}'
             flag = True
-        elif trans.status == Transfer.Status.INSUFFICIENT_BALANCE:
-            mess_string = f'Transfer message\namount: {trans.amount / (10 ** trans.token.decimals)} {trans.token.symbol}\ntx hash: {trans.tx_hash}\ntx error: {trans.tx_error}\ntx status: insufficient balance'
+        elif transfer.status == Transfer.Status.INSUFFICIENT_BALANCE:
+            decimals = NETWORKS[network]['decimals']
+            balance = transfer.token.swap_owner_balance / (10 ** decimals)
+            symbol = NETWORKS[network]['symbol']
+            message_str = f'please top up swap contract owner balance to make a transfer, current is {balance} {symbol}'
             flag = True
-        elif trans.status == Transfer.Status.FAIL:
-            mess_string = f'Transfer message\namount: {trans.amount / (10 ** trans.token.decimals)} {trans.token.symbol}\ntx hash: {trans.tx_hash}\ntx error: {trans.tx_error}\ntx status: fail'
+        elif transfer.status == Transfer.Status.FAIL:
+            message_str = f'failed to send {amount} {symbol} in {network} network: {transfer.tx_error}'
             flag = True
             
         if flag == True:
-            mess_id = trans.payment.bot_message_id
-            self.bot.send_message(GROUP_ID, f'Transfer message\n{mess_string}', reply_to_message_id=mess_id)
+            mess_id = transfer.payment.bot_message_id
+            self.bot.send_message(GROUP_ID, message_str, reply_to_message_id=mess_id)
 
     def callback(self, ch, method, properties, body):
         # print('RECEIVER: received', method, properties, body, flush=True)
