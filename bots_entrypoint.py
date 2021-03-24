@@ -31,7 +31,11 @@ class Receiver(threading.Thread):
         balances = []
         reply_flags = {}
         for token in tokens:
-            balances.append(token.swap_owner_balance)
+            try:
+                balances.append(token.swap_owner_balance)
+            except Exception:
+                print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
+                sleep(15)
             reply_flags.setdefault(token.dex.name+'-'+token.network)
         flags = []
         for i in range(len(tokens)):
@@ -65,6 +69,13 @@ class Receiver(threading.Thread):
             except Exception:
                 print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
                 sleep(15)
+                                                
+    def start_checking(self):
+        try:
+            self.check_balances_two()
+        except Exception:
+            print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
+            sleep(15)
 
     def run(self):
         connection = pika.BlockingConnection(pika.ConnectionParameters(
@@ -89,7 +100,7 @@ class Receiver(threading.Thread):
         )
         print(f'{self.dex_name}: queue was started', flush=True)
         threading.Thread(target=self.start_polling).start()
-        threading.Thread(target=self.check_balances_two).start()
+        threading.Thread(target=self.start_checking).start()
         #self.bot.send_message(GROUP_ID, f'{self.network}: queue was started')
         channel.start_consuming()
 
