@@ -33,7 +33,7 @@ class Receiver(threading.Thread):
         for token in tokens:
             try:
                 balances.append(token.swap_owner_balance)
-            except Exception:
+            except requests.exceptions.RequestException:
                 print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
                 sleep(15)
             reply_flags.setdefault(token.dex.name+'-'+token.network)
@@ -71,11 +71,12 @@ class Receiver(threading.Thread):
                 sleep(15)
                                                 
     def start_checking(self):
-        try:
-            self.check_balances_two()
-        except Exception:
-            print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
-            sleep(15)
+        while True:
+            try:
+                self.check_balances_two()
+            except Exception:
+                print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
+                sleep(15)
 
     def run(self):
         connection = pika.BlockingConnection(pika.ConnectionParameters(
