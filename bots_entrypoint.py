@@ -94,14 +94,16 @@ class Receiver(threading.Thread):
         channel.start_consuming()
 
     def payment(self, message):
-        paym = Payment.objects.get(id=message['paymentId'])
-        from_network = paym.token.network
-        #print(f'{self.network}: payment message has been received\n', flush=True)
-        message_string = f'Payment message\namount: {paym.amount / (10 ** paym.token.decimals)} {paym.token.symbol}\nnetwork: {from_network}\ntx hash: {paym.tx_hash}'
-        msg = self.bot.send_message(GROUP_ID, f'{message_string}')
+        payment = Payment.objects.get(id=message['paymentId'])
+        amount = payment.amount / (10 ** payment.token.decimals)
+        symbol = payment.token.symbol
+        network = payment.token.network
+
+        message_str = f'received {amount} {symbol} in {network} network: {payment.tx_hash}'
+        msg = self.bot.send_message(GROUP_ID, message_str)
         msg_id = msg.message_id
-        paym.bot_message_id = msg_id
-        paym.save()
+        payment.bot_message_id = msg_id
+        payment.save()
 
     def transfer(self, message):
         #print(f'{self.network}: execute transfer message has been received\n', flush=True)
