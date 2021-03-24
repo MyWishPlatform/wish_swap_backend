@@ -59,14 +59,12 @@ class BinanceChainInterface:
 def get_tx_info(tx_hash):
     url = f'{NETWORKS["Binance-Chain"]["api-url"]}tx/{tx_hash}?format=json'
     response = requests.get(url)
-    return json.loads(response.text) if response.status_code == 200 else None
+    return json.loads(response.text)
 
 
 def get_balance(address, symbol):
     url = f'{NETWORKS["Binance-Chain"]["api-url"]}account/{address}?format=json'
     response = requests.get(url)
-    if response.status_code != 200:
-        return None
 
     balances = response.json()['balances']
     for balance in balances:
