@@ -135,7 +135,7 @@ STATIC_URL = os.getenv('DJANGO_STATIC_URL', '/static/')
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
-GAS_LIMIT = 500000
+GAS_LIMIT = 100000
 
 RATES_CHECKER_TIMEOUT = 60 * 10
 
