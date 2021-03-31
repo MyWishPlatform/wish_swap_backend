@@ -57,7 +57,7 @@ def swap_status_view(request, payment_hash):
             Transfer.Status.VALIDATION,
             Transfer.Status.PROVIDER_IS_UNREACHABLE,
             Transfer.Status.INSUFFICIENT_TOKEN_BALANCE,
-            Transfer.Status.INSUFFICIENT_BALACE):
+            Transfer.Status.INSUFFICIENT_BALANCE):
         return Response({'status': 'IN_PROCESS'}, status=200)
     if status == Transfer.Status.PENDING:
         return Response({'status': 'IN_PROCESS', 'transfer_hash': transfer.tx_hash}, status=200)
