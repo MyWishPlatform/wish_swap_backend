@@ -4,11 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from wish_swap.payments.models import Payment
 from wish_swap.transfers.models import Transfer
-'''
-from wish_swap.transfers.serializers import TransferSerializer
-from wish_swap.transfers.models import Transfer
-from rest_framework.views import APIView
-'''
+
 
 payment_not_found_response = openapi.Response(
     description='response if no such payment exists in db',
@@ -21,7 +17,7 @@ payment_not_found_response = openapi.Response(
 )
 
 swap_status_response = openapi.Response(
-    description='Swap status: `SUCCESS`, `IN PROCESSS`, `FAIL` and transfer hash if `SUCCESS`',
+    description='Swap status: `SUCCESS`, `IN_PROCESSS`, `FAIL` and transfer hash if available',
     schema=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
@@ -47,35 +43,25 @@ def swap_status_view(request, payment_hash):
     except Payment.DoesNotExist:
         return Response({'detail': 'no such payment exists in db'}, 404)
 
-    if payment.validation != 'SUCCESS':
+    if payment.validation in (Payment.Validation.PROVIDER_IS_UNREACHABLE, Payment.Validation.WAITING_FOR):
+        return Response({'status': 'IN_PROCESS'}, status=200)
+    if payment.validation != Payment.Validation.SUCCESS:
         return Response({'status': 'FAIL'}, status=200)
 
     transfer = Transfer.objects.get(payment=payment)
     status = transfer.status
-    if status in ('HIGH GAS PRICE', 'WAITING FOR CONFIRM', 'SMALL TOKEN BALANCE', 'SMALL BALANCE'):
-        return Response({'status': 'IN PROCESS'}, status=200)
-    elif status == 'FAIL':
+
+    if status in (
+            Transfer.Status.HIGH_GAS_PRICE,
+            Transfer.Status.CREATED,
+            Transfer.Status.VALIDATION,
+            Transfer.Status.PROVIDER_IS_UNREACHABLE,
+            Transfer.Status.INSUFFICIENT_TOKEN_BALANCE,
+            Transfer.Status.INSUFFICIENT_BALACE):
+        return Response({'status': 'IN_PROCESS'}, status=200)
+    if status == Transfer.Status.PENDING:
+        return Response({'status': 'IN_PROCESS', 'transfer_hash': transfer.tx_hash}, status=200)
+    if status == Transfer.Status.FAIL:
         return Response({'status': 'FAIL'}, status=200)
-    return Response({'status': status, 'transfer_hash': transfer.tx_hash}, status=200)
 
-
-'''
-class TransferView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get transfer info by payment hash\n"
-                              "Transfer statuses: `SUCCESS`, `HIGH GAS PRICE`, "
-                              "`FAIL` or `DECLINED` (of fee is more then token amount)",
-        manual_parameters=[
-            openapi.Parameter('payment_hash', openapi.IN_PATH, type=openapi.TYPE_STRING),
-        ],
-        responses={200: TransferSerializer(), 404: payment_not_found_response},
-    )
-    def get(self, request, payment_hash):
-        try:
-            payment = Payment.objects.get(tx_hash=payment_hash)
-        except Payment.DoesNotExist:
-            return Response({'detail': 'no such payment exists in db'}, 404)
-        transfer = Transfer.objects.get(payment=payment)
-        serializer = TransferSerializer(transfer)
-        return Response(serializer.data, status=200)
-'''
+    return Response({'status': 'SUCCESS', 'transfer_hash': transfer.tx_hash}, status=200)
