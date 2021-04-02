@@ -4,7 +4,7 @@ from django.db import models
 from web3 import Web3, HTTPProvider
 from web3.exceptions import TransactionNotFound
 
-from wish_swap.bots.api import generate_bot_message
+from wish_swap.payments.api import generate_bot_message
 from wish_swap.bots.models import BotSub, BotSwapMessage
 from wish_swap.settings import NETWORKS
 from wish_swap.transfers.binance_chain_api import BinanceChainInterface, get_tx_info

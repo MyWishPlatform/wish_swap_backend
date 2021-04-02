@@ -1,6 +1,6 @@
 import rabbitmq
 from django.db import models
-from wish_swap.bots.api import generate_bot_message
+from wish_swap.payments.api import generate_bot_message
 from wish_swap.bots.models import BotSub, BotSwapMessage
 
 
