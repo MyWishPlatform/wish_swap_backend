@@ -66,7 +66,9 @@ class Payment(models.Model):
         t_symbol = transfer.token.symbol
         t_network = transfer.token.network
 
-        if transfer.status == Transfer.Status.PROVIDER_IS_UNREACHABLE:
+        if transfer.status in (Transfer.Status.CREATED, Transfer.Status.VALIDATION):
+            return p_message
+        elif transfer.status == Transfer.Status.PROVIDER_IS_UNREACHABLE:
             return f'{p_message}. swap will be executed later due to unreachable provider in {t_network} network'
         elif transfer.status == Transfer.Status.SUCCESS:
             return f'successful swap: {p_amount} {p_symbol} -> {t_amount} {t_symbol}'
