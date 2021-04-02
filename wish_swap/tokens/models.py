@@ -15,7 +15,10 @@ class Dex(models.Model):
 
     token_balance_warning_level = models.IntegerField()
     bot_token = models.CharField(max_length=100)
-    bot = TeleBot(bot_token)
+
+    @property
+    def bot(self):
+        return TeleBot(self.bot_token)
 
     def __getitem__(self, network):
         return Token.objects.get(dex=self, network=network)
