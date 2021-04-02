@@ -33,22 +33,22 @@ class Bot(threading.Thread):
         @self.bot.message_handler(commands=['balances'])
         def balances_handler(message):
             tokens = Token.objects.filter(dex=self.dex)
-            balances = []
+            balances = ''
             for token in tokens:
                 decimals = NETWORKS[token.network]['decimals']
                 symbol = NETWORKS[token.network]['symbol']
                 balance = token.swap_owner_balance / (10 ** decimals)
-                balances += f'{balance} {symbol}'
-            self.bot.reply_to(message, '\n'.join(balances))
+                balances += f'{balance} {symbol}\n'
+            self.bot.reply_to(message, balances)
 
         @self.bot.message_handler(commands=['balances'])
         def token_balances_handler(message):
             tokens = Token.objects.filter(dex=self.dex)
-            balances = []
+            balances = ''
             for token in tokens:
                 balance = token.swap_contract_token_balance / (10 ** token.decimals)
-                balances += f'{balance} {token.symbol}'
-            self.bot.reply_to(message, '\n'.join(balances))
+                balances += f'{balance} {token.symbol}\n'
+            self.bot.reply_to(message, balances)
 
         @self.bot.message_handler(commands=['ping'])
         def ping_handler(message):
