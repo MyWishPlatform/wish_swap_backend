@@ -16,12 +16,12 @@ def parse_execute_transfer_message(message, queue):
         if transfer.status != Transfer.Status.PROVIDER_IS_UNREACHABLE:
             transfer.status = Transfer.Status.PROVIDER_IS_UNREACHABLE
             transfer.save()
-            transfer.send_bot_message()
+            transfer.payment.send_to_bot_queue()
     except ValidationException as e:
         if transfer.status != e.status:
             transfer.status = e.status
             transfer.save()
-            transfer.send_bot_message()
+            transfer.payment.send_to_bot_queue()
 
 
 def execute_transfer(transfer, queue):
@@ -64,7 +64,7 @@ def execute_transfer(transfer, queue):
 
     if transfer.status == Transfer.Status.FAIL:
         print(f'{queue}: failed transfer \n{transfer}\n', flush=True)
-        transfer.send_bot_message()
+        transfer.payment.send_to_bot_queue()
     else:
         transfer.update_status()
         transfer.save()
@@ -78,7 +78,7 @@ def execute_transfer(transfer, queue):
             print(f'{queue}: successful transfer \n{transfer}\n', flush=True)
         else:
             print(f'{queue}: failed transfer after pending \n{transfer}\n', flush=True)
-        transfer.send_bot_message()
+        transfer.payment.send_to_bot_queue()
 
     timeout = NETWORKS[network]['transfer_timeout']
     print(f'{queue}: waiting {timeout} seconds before next transfer...\n', flush=True)

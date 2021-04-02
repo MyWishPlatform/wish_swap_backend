@@ -39,12 +39,12 @@ def parse_validate_payment_message(queue, message):
         transfer = create_transfer_if_payment_valid(payment)
         print(f'{queue}: payment validation success, send transfer to queue \n{transfer}\n', flush=True)
         transfer.send_to_transfers_queue()
-        payment.send_bot_message()
+        payment.send_to_bot_queue()
     except ValidationException as e:
         if payment.validation != e.status:
             payment.validation = e.status
             payment.save()
-            payment.send_bot_message()
+            payment.send_to_bot_queue()
         print(f'{queue}: payment validation failed \n{payment}\n', flush=True)
 
 
