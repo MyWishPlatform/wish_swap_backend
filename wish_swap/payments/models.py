@@ -1,5 +1,7 @@
-from django.db import models
 import rabbitmq
+from django.db import models
+from wish_swap.bots.api import generate_bot_message
+from wish_swap.bots.models import BotSub, BotSwapMessage
 
 
 class Payment(models.Model):
@@ -20,7 +22,6 @@ class Payment(models.Model):
     validation = models.CharField(max_length=100,
                                   choices=Validation.choices,
                                   default=Validation.WAITING_FOR)
-    bot_message_id = models.IntegerField(default=0)
 
     def __str__(self):
         symbol = self.token.symbol
@@ -36,9 +37,13 @@ class Payment(models.Model):
         message = {'paymentId': self.id, 'status': 'COMMITTED'}
         rabbitmq.publish_message(f'payments-validation', 'validate_payment', message)
 
-    def send_to_bot_queue(self):
-        message = {'paymentId': self.id, 'status': 'COMMITTED'}
-        rabbitmq.publish_message(f'{self.token.dex.name}-bot', 'payment', message)
+    def send_bot_message(self):
+        message = generate_bot_message(payment=self)
+        subs = BotSub.objects.filter(dex=self.token.dex)
+        bot = self.token.dex.bot
+        for sub in subs:
+            msg_id = bot.send_message(sub.chat_id, message)
+            BotSwapMessage(payment=self, sub=sub, message_id=msg_id).save()
 
 
 class ValidationException(Exception):

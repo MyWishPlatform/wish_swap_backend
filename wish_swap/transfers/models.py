@@ -3,6 +3,9 @@ import rabbitmq
 from django.db import models
 from web3 import Web3, HTTPProvider
 from web3.exceptions import TransactionNotFound
+
+from wish_swap.bots.api import generate_bot_message
+from wish_swap.bots.models import BotSub, BotSwapMessage
 from wish_swap.settings import NETWORKS
 from wish_swap.transfers.binance_chain_api import BinanceChainInterface, get_tx_info
 
@@ -104,6 +107,10 @@ class Transfer(models.Model):
         message = {'transferId': self.id, 'status': 'COMMITTED'}
         rabbitmq.publish_message(f'{self.token.network}-{self.token.symbol}-transfers', 'execute_transfer', message)
 
-    def send_to_bot_queue(self):
-        message = {'transferId': self.id, 'status': 'COMMITTED'}
-        rabbitmq.publish_message(f'{self.token.dex.name}-bot', 'transfer', message)
+    def send_bot_message(self):
+        message = generate_bot_message(payment=self.payment)
+        subs = BotSub.objects.filter(dex=self.token.dex)
+        bot = self.token.dex.bot
+        for sub in subs:
+            message_id = BotSwapMessage.objects.get(payment=self.payment, sub=sub).message_id
+            bot.edit_message_text(message, sub.chat_id, message_id)
