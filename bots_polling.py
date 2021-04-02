@@ -22,12 +22,12 @@ class Bot(threading.Thread):
 
         @self.bot.message_handler(commands=['start'])
         def start_handler(message):
-            BotSub(chat_id=message.chat.id).save()
+            BotSub(dex=self.dex, chat_id=message.chat.id).save()
             self.bot.reply_to(message, 'Hello!')
 
         @self.bot.message_handler(commands=['stop'])
         def stop_handler(message):
-            BotSub(chat_id=message.chat.id).delete()
+            BotSub(dex=self.dex, chat_id=message.chat.id).delete()
             self.bot.reply_to(message, 'Bye!')
 
         @self.bot.message_handler(commands=['balances'])
