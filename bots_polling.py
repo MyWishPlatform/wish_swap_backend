@@ -1,8 +1,14 @@
 import time
 import telebot
+import os
 import threading
 import traceback
 import sys
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'wish_swap.settings')
+import django
+django.setup()
+
 from wish_swap.bots.models import BotSub
 from wish_swap.tokens.models import Dex, Token
 from wish_swap.settings import NETWORKS
