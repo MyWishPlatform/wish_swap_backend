@@ -8,5 +8,5 @@ class BotSub(models.Model):
 
 class BotSwapMessage(models.Model):
     payment = models.ForeignKey('payments.Payment', on_delete=models.CASCADE)
-    sub = models.OneToOneField(BotSub, on_delete=models.CASCADE)
+    sub = models.ForeignKey(BotSub, on_delete=models.CASCADE)
     message_id = models.IntegerField()
