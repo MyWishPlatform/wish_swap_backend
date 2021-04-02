@@ -35,19 +35,20 @@ class Bot(threading.Thread):
             tokens = Token.objects.filter(dex=self.dex)
             balances = ''
             for token in tokens:
-                decimals = NETWORKS[token.network]['decimals']
-                symbol = NETWORKS[token.network]['symbol']
+                network = token.network
+                decimals = NETWORKS[network]['decimals']
+                symbol = NETWORKS[network]['symbol']
                 balance = token.swap_owner_balance / (10 ** decimals)
-                balances += f'{balance} {symbol}\n'
+                balances += f'{network}: {balance} {symbol}\n'
             self.bot.reply_to(message, balances)
 
-        @self.bot.message_handler(commands=['balances'])
+        @self.bot.message_handler(commands=['token_balances'])
         def token_balances_handler(message):
             tokens = Token.objects.filter(dex=self.dex)
             balances = ''
             for token in tokens:
                 balance = token.swap_contract_token_balance / (10 ** token.decimals)
-                balances += f'{balance} {token.symbol}\n'
+                balances += f'{token.network}: {balance} {token.symbol}\n'
             self.bot.reply_to(message, balances)
 
         @self.bot.message_handler(commands=['ping'])
@@ -68,3 +69,4 @@ if __name__ == '__main__':
     bots = {}
     for dex in dexes:
         Bot(dex).start()
+        print(f'{dex.name} bot started', flush=True)
