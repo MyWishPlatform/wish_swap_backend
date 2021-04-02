@@ -46,7 +46,10 @@ class Payment(models.Model):
         bot = self.token.dex.bot
         for sub in subs:
             try:
-                msg_id = bot.send_message(sub.chat_id, message, parse_mode='html').message_id
+                msg_id = bot.send_message(sub.chat_id,
+                                          message,
+                                          parse_mode='html',
+                                          disable_web_page_preview=True).message_id
             except Exception:
                 print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
                 return

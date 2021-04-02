@@ -114,6 +114,10 @@ class Transfer(models.Model):
         for sub in subs:
             message_id = BotSwapMessage.objects.get(payment=self.payment, sub=sub).message_id
             try:
-                bot.edit_message_text(message, sub.chat_id, message_id, parse_mode='html')
+                bot.edit_message_text(message,
+                                      sub.chat_id,
+                                      message_id,
+                                      parse_mode='html',
+                                      disable_web_page_preview=True)
             except Exception:
                 print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
