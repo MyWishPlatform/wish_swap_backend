@@ -32,7 +32,7 @@ class Bot(threading.Thread):
 
         @self.bot.message_handler(commands=['balances'])
         def balances_handler(message):
-            tokens = Token.objects.get(dex=self.dex)
+            tokens = Token.objects.filter(dex=self.dex)
             balances = []
             for token in tokens:
                 decimals = NETWORKS[token.network]['decimals']
@@ -43,7 +43,7 @@ class Bot(threading.Thread):
 
         @self.bot.message_handler(commands=['balances'])
         def token_balances_handler(message):
-            tokens = Token.objects.get(dex=self.dex)
+            tokens = Token.objects.filter(dex=self.dex)
             balances = []
             for token in tokens:
                 balance = token.swap_contract_token_balance / (10 ** token.decimals)
