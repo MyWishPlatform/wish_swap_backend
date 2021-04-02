@@ -19,13 +19,14 @@ def generate_swap_status_message(p):
     t_amount = transfer.amount / (10 ** transfer.token.decimals)
     t_symbol = transfer.token.symbol
     t_network = transfer.token.network
+    t_tx_url = NETWORKS[t_network]["explorer_url"] + transfer.tx_hash
 
     if transfer.status in (Transfer.Status.CREATED, Transfer.Status.VALIDATION):
         return p_message
     elif transfer.status == Transfer.Status.PROVIDER_IS_UNREACHABLE:
         return f'{p_message}. swap will be executed later due to unreachable provider in {t_network} network'
     elif transfer.status == Transfer.Status.SUCCESS:
-        return f'successful swap: {p_amount} {p_symbol} -> {t_amount} {t_symbol}'
+        return f'successful swap: <a href="{p_tx_url}">{p_amount} {p_symbol}</a> > <a href="{t_tx_url}">{t_amount} {t_symbol}</a>'
     elif transfer.status == Transfer.Status.HIGH_GAS_PRICE:
         return f'{p_message}. swap will be executed later due to high gas price in {t_network} network'
     elif transfer.status == Transfer.Status.INSUFFICIENT_TOKEN_BALANCE:
