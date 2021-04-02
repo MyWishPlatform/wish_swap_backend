@@ -1,3 +1,5 @@
+import sys
+import traceback
 import rabbitmq
 from django.db import models
 from wish_swap.bots.models import BotSub, BotSwapMessage
@@ -43,7 +45,12 @@ class Payment(models.Model):
         subs = BotSub.objects.filter(dex=self.token.dex)
         bot = self.token.dex.bot
         for sub in subs:
-            msg_id = bot.send_message(sub.chat_id, message)
+            try:
+                msg_id = bot.send_message(sub.chat_id, message)
+            except Exception:
+                print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
+                return
+
             BotSwapMessage(payment=self, sub=sub, message_id=msg_id).save()
 
     def generate_bot_message(self):
