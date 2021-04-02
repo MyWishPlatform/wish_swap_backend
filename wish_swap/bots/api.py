@@ -1,4 +1,4 @@
-from settings_local import NETWORKS
+from wish_swap.settings_local import NETWORKS
 from wish_swap.transfers.models import Transfer
 
 
