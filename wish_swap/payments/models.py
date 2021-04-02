@@ -46,7 +46,7 @@ class Payment(models.Model):
         bot = self.token.dex.bot
         for sub in subs:
             try:
-                msg_id = bot.send_message(sub.chat_id, message).message_id
+                msg_id = bot.send_message(sub.chat_id, message, parse_mode='html').message_id
             except Exception:
                 print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
                 return
@@ -56,7 +56,8 @@ class Payment(models.Model):
     def generate_bot_message(self):
         p_amount = self.amount / (10 ** self.token.decimals)
         p_symbol = self.token.symbol
-        p_message = f'received {p_amount} {p_symbol}'
+        p_network = self.token.network
+        p_message = f'Received <a href="{NETWORKS[p_network]["explorer_url"] + self.tx_hash}">{p_amount} {p_symbol}</a>'
         try:
             transfer = Transfer.objects.get(payment=self)
         except Transfer.DoesNotExist:
