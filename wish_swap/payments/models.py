@@ -46,7 +46,7 @@ class Payment(models.Model):
         bot = self.token.dex.bot
         for sub in subs:
             try:
-                msg_id = bot.send_message(sub.chat_id, message)
+                msg_id = bot.send_message(sub.chat_id, message).message_id
             except Exception:
                 print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
                 return
