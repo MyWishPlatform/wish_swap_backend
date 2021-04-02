@@ -1,7 +1,8 @@
 import rabbitmq
 from django.db import models
-from wish_swap.payments.api import generate_bot_message
 from wish_swap.bots.models import BotSub, BotSwapMessage
+from wish_swap.transfers.models import Transfer
+from wish_swap.settings import NETWORKS
 
 
 class Payment(models.Model):
@@ -38,12 +39,42 @@ class Payment(models.Model):
         rabbitmq.publish_message(f'payments-validation', 'validate_payment', message)
 
     def send_bot_message(self):
-        message = generate_bot_message(payment=self)
+        message = self.generate_bot_message()
         subs = BotSub.objects.filter(dex=self.token.dex)
         bot = self.token.dex.bot
         for sub in subs:
             msg_id = bot.send_message(sub.chat_id, message)
             BotSwapMessage(payment=self, sub=sub, message_id=msg_id).save()
+
+    def generate_bot_message(self):
+        p_amount = self.amount / (10 ** self.token.decimals)
+        p_symbol = self.token.symbol
+        p_message = f'received {p_amount} {p_symbol}'
+        try:
+            transfer = Transfer.objects.get(payment=self)
+        except Transfer.DoesNotExist:
+            return p_message
+
+        t_amount = transfer.amount / (10 ** transfer.token.decimals)
+        t_symbol = transfer.token.symbol
+        t_network = transfer.token.network
+
+        if transfer.status == Transfer.Status.PROVIDER_IS_UNREACHABLE:
+            return f'{p_message}. swap will be executed later due to unreachable provider in {t_network} network'
+        elif transfer.status == Transfer.Status.SUCCESS:
+            return f'successful swap: {p_amount} {p_symbol} -> {t_amount} {t_symbol}'
+        elif transfer.status == Transfer.Status.HIGH_GAS_PRICE:
+            return f'{p_message}. swap will be executed later due to high gas price in {t_network} network'
+        elif transfer.status == Transfer.Status.INSUFFICIENT_TOKEN_BALANCE:
+            token_balance = transfer.token.swap_contract_token_balance / (10 ** transfer.token.decimals)
+            return f'{p_message}. please top up swap contract token balance to make a transfer, current is {token_balance} {t_symbol}'
+        elif transfer.status == Transfer.Status.INSUFFICIENT_BALANCE:
+            decimals = NETWORKS[t_network]['decimals']
+            balance = transfer.token.swap_owner_balance / (10 ** decimals)
+            symbol = NETWORKS[t_network]['symbol']
+            return f'{p_message}. please top up swap contract owner balance to make a transfer, current is {balance} {symbol}'
+        elif transfer.status == Transfer.Status.FAIL:
+            return f'failed swap: {p_amount} {p_symbol} -> {t_amount} {t_symbol} ({transfer.tx_error})'
 
 
 class ValidationException(Exception):
