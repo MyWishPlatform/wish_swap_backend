@@ -68,6 +68,7 @@ def execute_transfer(transfer, queue):
     else:
         transfer.update_status()
         transfer.save()
+        transfer.payment.send_to_bot_queue()
         while transfer.status == Transfer.Status.PENDING:
             print(f'{queue}: pending transfer \n{transfer}\n', flush=True)
             print(f'{queue}: waiting {TX_STATUS_CHECK_TIMEOUT} seconds before next status check...\n', flush=True)
