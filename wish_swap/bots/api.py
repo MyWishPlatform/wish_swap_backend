@@ -1,3 +1,4 @@
+from telebot import TeleBot
 from wish_swap.bots.models import BotSub, BotSwapMessage
 from wish_swap.payments.models import Payment
 from wish_swap.settings_local import NETWORKS
@@ -48,7 +49,7 @@ def parse_change_swap_status_bot_message(message):
     p = Payment.objects.get(pk=message['paymentId'])
     message = generate_swap_status_message(p)
     subs = BotSub.objects.filter(dex=p.token.dex)
-    bot = p.token.dex.bot
+    bot = TeleBot(p.token.dex.bot_token)
 
     for sub in subs:
         try:

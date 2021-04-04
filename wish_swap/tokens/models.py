@@ -14,10 +14,6 @@ class Dex(models.Model):
     min_swap_amount = models.IntegerField()
     bot_token = models.CharField(max_length=100)
 
-    @property
-    def bot(self):
-        return TeleBot(self.bot_token)
-
     def __getitem__(self, network):
         return Token.objects.get(dex=self, network=network)
 
