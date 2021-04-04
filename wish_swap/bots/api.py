@@ -5,40 +5,43 @@ from wish_swap.transfers.models import Transfer
 
 
 def generate_swap_status_message(p):
-    p_amount = p.amount / (10 ** p.token.decimals)
-    p_symbol = p.token.symbol
-    p_network = p.token.network
-    p_tx_url = NETWORKS[p_network]["explorer_url"] + p.tx_hash
-    p_message = f'Received <a href="{p_tx_url}">{p_amount} {p_symbol}</a>'
+    hyperlink = '<a href="{url}">{text}</a>'
+    p_amount = f'{p.amount / (10 ** p.token.decimals)} {p.token.symbol}'
+    p_tx_url = NETWORKS[p.token.network]["explorer_url"] + p.tx_hash
+    p_message = f'received {hyperlink.format(url=p_tx_url, text=p_amount)}'
 
     try:
-        transfer = Transfer.objects.get(payment=p)
+        t = Transfer.objects.get(payment=p)
     except Transfer.DoesNotExist:
         return p_message
 
-    t_amount = transfer.amount / (10 ** transfer.token.decimals)
-    t_symbol = transfer.token.symbol
-    t_network = transfer.token.network
-    t_tx_url = NETWORKS[t_network]["explorer_url"] + transfer.tx_hash
+    t_amount = f'{t.amount / (10 ** t.token.decimals)} {t.token.symbol}'
+    t_network = t.token.network
+    t_tx_url = NETWORKS[t_network]["explorer_url"] + t.tx_hash
 
-    if transfer.status in (Transfer.Status.CREATED, Transfer.Status.VALIDATION):
+    if t.status in (Transfer.Status.CREATED, Transfer.Status.VALIDATION):
         return p_message
-    elif transfer.status == Transfer.Status.PROVIDER_IS_UNREACHABLE:
+    elif t.status == Transfer.Status.PENDING:
+        return f'pending: ' \
+               f'{hyperlink.format(url=p_tx_url, text=p_amount)} > ' \
+               f'{hyperlink.format(url=t_tx_url, text=t_amount)}'
+    elif t.status == Transfer.Status.SUCCESS:
+        return f'success: ' \
+               f'{hyperlink.format(url=p_tx_url, text=p_amount)} > ' \
+               f'{hyperlink.format(url=t_tx_url, text=t_amount)}'
+    elif t.status == Transfer.Status.PROVIDER_IS_UNREACHABLE:
         return f'{p_message}. swap will be executed later due to unreachable provider in {t_network} network'
-    elif transfer.status == Transfer.Status.SUCCESS:
-        return f'successful swap: <a href="{p_tx_url}">{p_amount} {p_symbol}</a> > <a href="{t_tx_url}">{t_amount} {t_symbol}</a>'
-    elif transfer.status == Transfer.Status.HIGH_GAS_PRICE:
+    elif t.status == Transfer.Status.HIGH_GAS_PRICE:
         return f'{p_message}. swap will be executed later due to high gas price in {t_network} network'
-    elif transfer.status == Transfer.Status.INSUFFICIENT_TOKEN_BALANCE:
-        token_balance = transfer.token.swap_contract_token_balance / (10 ** transfer.token.decimals)
-        return f'{p_message}. please top up swap contract token balance to make a transfer, current is {token_balance} {t_symbol}'
-    elif transfer.status == Transfer.Status.INSUFFICIENT_BALANCE:
+    elif t.status == Transfer.Status.INSUFFICIENT_TOKEN_BALANCE:
+        token_balance = f'{t.token.swap_contract_token_balance / (10 ** t.token.decimals)} {t.token.symbol}'
+        return f'{p_message}. please top up swap contract token balance to make a transfer, current is {token_balance}'
+    elif t.status == Transfer.Status.INSUFFICIENT_BALANCE:
         decimals = NETWORKS[t_network]['decimals']
-        balance = transfer.token.swap_owner_balance / (10 ** decimals)
-        symbol = NETWORKS[t_network]['symbol']
-        return f'{p_message}. please top up swap contract owner balance to make a transfer, current is {balance} {symbol}'
-    elif transfer.status == Transfer.Status.FAIL:
-        return f'failed swap: {p_amount} {p_symbol} -> {t_amount} {t_symbol} ({transfer.tx_error})'
+        balance = f'{t.token.swap_owner_balance / (10 ** decimals)} {NETWORKS[t_network]["symbol"]}'
+        return f'{p_message}. please top up swap contract owner balance to make a transfer, current is {balance}'
+    elif t.status == Transfer.Status.FAIL:
+        return f'<b>fail</b>: {hyperlink.format(url=p_tx_url, text=p_amount)} > {t_amount} ({t.tx_error})'
 
 
 def parse_change_swap_status_bot_message(message):
@@ -54,4 +57,3 @@ def parse_change_swap_status_bot_message(message):
         except BotSwapMessage.DoesNotExist:
             msg_id = bot.send_message(sub.chat_id, message, parse_mode='html', disable_web_page_preview=True).message_id
             BotSwapMessage(payment=p, sub=sub, message_id=msg_id).save()
-            return
