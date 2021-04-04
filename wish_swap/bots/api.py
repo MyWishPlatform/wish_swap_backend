@@ -23,11 +23,11 @@ def generate_swap_status_message(p):
         return p_message
     elif t.status == Transfer.Status.PENDING:
         return f'pending: ' \
-               f'{hyperlink.format(url=p_tx_url, text=p_amount)} > ' \
+               f'{hyperlink.format(url=p_tx_url, text=p_amount)} → ' \
                f'{hyperlink.format(url=t_tx_url, text=t_amount)}'
     elif t.status == Transfer.Status.SUCCESS:
         return f'success: ' \
-               f'{hyperlink.format(url=p_tx_url, text=p_amount)} > ' \
+               f'{hyperlink.format(url=p_tx_url, text=p_amount)} → ' \
                f'{hyperlink.format(url=t_tx_url, text=t_amount)}'
     elif t.status == Transfer.Status.PROVIDER_IS_UNREACHABLE:
         return f'{p_message}. swap will be executed later due to unreachable provider in {t_network} network'
@@ -41,7 +41,7 @@ def generate_swap_status_message(p):
         balance = f'{t.token.swap_owner_balance / (10 ** decimals)} {NETWORKS[t_network]["symbol"]}'
         return f'{p_message}. please top up swap contract owner balance to make a transfer, current is {balance}'
     elif t.status == Transfer.Status.FAIL:
-        return f'<b>fail</b>: {hyperlink.format(url=p_tx_url, text=p_amount)} > {t_amount} ({t.tx_error})'
+        return f'<b>fail</b>: {hyperlink.format(url=p_tx_url, text=p_amount)} → {t_amount}\n{t.tx_error})'
 
 
 def parse_change_swap_status_bot_message(message):
