@@ -12,8 +12,6 @@ from wish_swap.transfers.binance_chain_api import get_balance
 class Dex(models.Model):
     name = models.CharField(max_length=100, primary_key=True)
     min_swap_amount = models.IntegerField()
-
-    token_balance_warning_level = models.IntegerField()
     bot_token = models.CharField(max_length=100)
 
     @property
