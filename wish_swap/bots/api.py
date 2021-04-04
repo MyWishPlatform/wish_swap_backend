@@ -41,7 +41,7 @@ def generate_swap_status_message(p):
         balance = f'{t.token.swap_owner_balance / (10 ** decimals)} {NETWORKS[t_network]["symbol"]}'
         return f'{p_message}. please top up swap contract owner balance to make a transfer, current is {balance}'
     elif t.status == Transfer.Status.FAIL:
-        return f'<b>fail</b>: {hyperlink.format(url=p_tx_url, text=p_amount)} → {t_amount}\n{t.tx_error})'
+        return f'<b>fail</b>: {hyperlink.format(url=p_tx_url, text=p_amount)} → {t_amount}\n{t.tx_error}'
 
 
 def parse_change_swap_status_bot_message(message):
