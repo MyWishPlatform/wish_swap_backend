@@ -1,10 +1,7 @@
-import sys
-import traceback
 import rabbitmq
 from django.db import models
 from wish_swap.bots.models import BotSub, BotSwapMessage
 from wish_swap.transfers.models import Transfer
-from wish_swap.settings import NETWORKS
 
 
 class Payment(models.Model):
