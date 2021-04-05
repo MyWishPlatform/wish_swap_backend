@@ -31,8 +31,11 @@ class Bot(threading.Thread):
 
         @self.bot.message_handler(commands=['stop'])
         def stop_handler(message):
-            BotSub.objects.get(dex=self.dex, chat_id=message.chat.id).delete()
-            self.bot.reply_to(message, 'Bye!')
+            try:
+                BotSub.objects.get(dex=self.dex, chat_id=message.chat.id).delete()
+                self.bot.reply_to(message, 'Bye!')
+            except BotSub.DoesNotExist:
+                pass
 
         @self.bot.message_handler(commands=['balances'])
         def balances_handler(message):
