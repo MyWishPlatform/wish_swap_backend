@@ -1,5 +1,5 @@
-from django.db import models
 import rabbitmq
+from django.db import models
 
 
 class Payment(models.Model):
@@ -20,7 +20,6 @@ class Payment(models.Model):
     validation = models.CharField(max_length=100,
                                   choices=Validation.choices,
                                   default=Validation.WAITING_FOR)
-    bot_message_id = models.IntegerField(default=0)
 
     def __str__(self):
         symbol = self.token.symbol
@@ -38,7 +37,7 @@ class Payment(models.Model):
 
     def send_to_bot_queue(self):
         message = {'paymentId': self.id, 'status': 'COMMITTED'}
-        rabbitmq.publish_message(f'{self.token.dex.name}-bot', 'payment', message)
+        rabbitmq.publish_message(f'swap-status-bots', 'change_bot_message_text', message)
 
 
 class ValidationException(Exception):

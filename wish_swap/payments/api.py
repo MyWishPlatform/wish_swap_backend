@@ -48,8 +48,6 @@ def parse_validate_payment_message(queue, message):
         print(f'{queue}: payment validation failed \n{payment}\n', flush=True)
 
 
-
-
 def create_transfer_if_payment_valid(payment):
     try:
         to_network = NETWORKS_BY_NUMBER[payment.transfer_network_number]

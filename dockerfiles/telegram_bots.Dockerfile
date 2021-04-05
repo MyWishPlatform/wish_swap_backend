@@ -8,4 +8,4 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install -r requirements.txt
 
 COPY . /app
-CMD ["python", "bots_entrypoint.py"]
+CMD ["python", "bots_polling.py"]

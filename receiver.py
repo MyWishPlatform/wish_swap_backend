@@ -12,6 +12,7 @@ from wish_swap.settings import NETWORKS
 from wish_swap.payments.api import parse_payment, parse_validate_payment_message
 from wish_swap.transfers.models import Transfer
 from wish_swap.transfers.api import parse_execute_transfer_message
+from wish_swap.bots.api import parse_change_bot_message_text_message
 from wish_swap.tokens.models import Token
 import rabbitmq
 
@@ -60,6 +61,10 @@ class Receiver(threading.Thread):
         print(f'{self.queue}: execute transfer message has been received\n', flush=True)
         parse_execute_transfer_message(message, self.queue)
 
+    def change_bot_message_text(self, message):
+        print(f'{self.queue}: change bot message text message has been received\n', flush=True)
+        parse_change_bot_message_text_message(message)
+
     def callback(self, ch, method, properties, body):
         # print('RECEIVER: received', method, properties, body, flush=True)
         try:
@@ -84,5 +89,6 @@ for network in NETWORKS.keys():
     receiver = Receiver(network)
     receiver.start()
 
-receiver = Receiver('payments-validation')
-receiver.start()
+Receiver('payments-validation').start()
+Receiver('swap-status-bots').start()
+

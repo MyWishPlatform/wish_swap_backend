@@ -103,7 +103,3 @@ class Transfer(models.Model):
     def send_to_transfers_queue(self):
         message = {'transferId': self.id, 'status': 'COMMITTED'}
         rabbitmq.publish_message(f'{self.token.network}-{self.token.symbol}-transfers', 'execute_transfer', message)
-
-    def send_to_bot_queue(self):
-        message = {'transferId': self.id, 'status': 'COMMITTED'}
-        rabbitmq.publish_message(f'{self.token.dex.name}-bot', 'transfer', message)
