@@ -1,10 +1,8 @@
 import requests
-from telebot import TeleBot
 from django.db import models
 from encrypted_fields import fields
 from requests_http_signature import HTTPSignatureAuth
 from web3 import Web3, HTTPProvider
-
 from wish_swap.settings import NETWORKS, GAS_LIMIT, REMOTE_SIGN_URL, SECRET_KEY, SECRET_KEY_ID
 from wish_swap.transfers.binance_chain_api import get_balance
 

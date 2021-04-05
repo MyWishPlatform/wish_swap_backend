@@ -1,7 +1,5 @@
 import rabbitmq
 from django.db import models
-from wish_swap.bots.models import BotSub, BotSwapMessage
-from wish_swap.transfers.models import Transfer
 
 
 class Payment(models.Model):
