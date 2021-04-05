@@ -12,6 +12,7 @@ django.setup()
 from wish_swap.bots.models import BotSub
 from wish_swap.tokens.models import Dex, Token
 from wish_swap.settings import NETWORKS
+from django.db import IntegrityError
 
 
 class Bot(threading.Thread):
@@ -22,8 +23,11 @@ class Bot(threading.Thread):
 
         @self.bot.message_handler(commands=['start'])
         def start_handler(message):
-            BotSub(dex=self.dex, chat_id=message.chat.id).save()
-            self.bot.reply_to(message, 'Hello!')
+            try:
+                BotSub(dex=self.dex, chat_id=message.chat.id).save()
+                self.bot.reply_to(message, 'Hello!')
+            except IntegrityError:
+                pass
 
         @self.bot.message_handler(commands=['stop'])
         def stop_handler(message):
