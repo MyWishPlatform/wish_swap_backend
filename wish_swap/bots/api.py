@@ -45,7 +45,7 @@ def generate_swap_status_message(p):
         return f'<b>fail</b>: {hyperlink.format(url=p_tx_url, text=p_amount)} → {t_amount}\n{t.tx_error}'
 
 
-def parse_change_swap_status_bot_message(message):
+def parse_change_bot_message_text_message(message):
     p = Payment.objects.get(pk=message['paymentId'])
     message = generate_swap_status_message(p)
     subs = BotSub.objects.filter(dex=p.token.dex)

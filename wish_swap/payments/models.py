@@ -37,7 +37,7 @@ class Payment(models.Model):
 
     def send_to_bot_queue(self):
         message = {'paymentId': self.id, 'status': 'COMMITTED'}
-        rabbitmq.publish_message(f'swap-status-bots', 'change_swap_status_bot', message)
+        rabbitmq.publish_message(f'swap-status-bots', 'change_bot_message_text', message)
 
 
 class ValidationException(Exception):
