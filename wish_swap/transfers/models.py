@@ -65,7 +65,8 @@ class Transfer(models.Model):
                 else:
                     self.status = self.Status.FAIL
                 self.save()
-            except (requests.exceptions.RequestException, TransactionNotFound):
+            except (requests.exceptions.RequestException, TransactionNotFound, KeyError):
+                # KeyError: Smart Chain node sometimes can return empty response and web3 doesn't handle it
                 pass
         elif self.network == 'Binance-Chain':
             tx_info = get_tx_info(self.tx_hash)
